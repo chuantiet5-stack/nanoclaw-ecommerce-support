@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoClaw 管理后台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600&display=swap"
+          rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a28;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-input: rgba(255, 255, 255, 0.1);
+            --text-primary: #e8e8ed;
+            --text-secondary: #9494a8;
+            --text-muted: #5a5a6e;
+            --accent: #d4a853;
+            --accent-hover: #e0b964;
+            --danger: #ef4444;
+            --ok: #4ade80;
+            --info: #60a5fa;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ============ 顶栏 ============ */
+        .topbar {
+            height: 52px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+
+        .topbar-logo {
+            width: 26px; height: 26px;
+            background: linear-gradient(135deg, var(--accent), #b8863a);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+        }
+
+        .topbar-title { font-size: 14px; font-weight: 500; }
+
+        .topbar-links { margin-left: auto; display: flex; gap: 14px; font-size: 12px; }
+        .topbar-links a { color: var(--text-muted); text-decoration: none; }
+        .topbar-links a:hover { color: var(--accent); }
+
+        /* ============ Tabs ============ */
+        .tabs {
+            flex-shrink: 0;
+            display: flex;
+            gap: 4px;
+            padding: 10px 20px 0;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .tab {
+            padding: 9px 18px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            border: 1px solid transparent;
+            border-bottom: none;
+            transition: all var(--transition);
+            font-family: inherit;
+            background: transparent;
+        }
+
+        .tab:hover { color: var(--text-primary); }
+
+        .tab.active {
+            background: var(--bg-primary);
+            border-color: var(--border-subtle);
+            color: var(--accent);
+        }
+
+        /* ============ 内容区 ============ */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 22px;
+        }
+
+        .page { display: none; max-width: 1200px; margin: 0 auto; }
+        .page.active { display: block; }
+
+        /* ============ 看板卡片 ============ */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .kpi-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+        }
+
+        .kpi-card .label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+
+        .kpi-card .value {
+            font-size: 26px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .kpi-card .delta { font-size: 11px; margin-top: 6px; }
+        .kpi-card .delta.up { color: var(--ok); }
+        .kpi-card .delta.down { color: var(--danger); }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+        }
+
+        .panel h3 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+
+        .panel.wide { grid-column: 1 / -1; }
+
+        /* 条形图 */
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .bar-row .bar-label {
+            width: 90px;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bar-row .bar-track {
+            flex: 1;
+            height: 18px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-row .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #b8863a);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .bar-row .bar-value {
+            width: 46px;
+            flex-shrink: 0;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* 折线图（SVG） */
+        .trend-svg { width: 100%; height: 180px; }
+
+        /* ============ 表格 ============ */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        th { color: var(--text-muted); font-weight: 400; font-size: 11.5px; }
+
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .score {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .score.good { color: var(--ok); }
+        .score.mid { color: var(--accent); }
+        .score.bad { color: var(--danger); }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .pill.green { background: rgba(74, 222, 128, 0.12); color: var(--ok); }
+        .pill.gold { background: rgba(212, 168, 83, 0.12); color: var(--accent); }
+        .pill.red { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
+        .pill.blue { background: rgba(96, 165, 250, 0.12); color: var(--info); }
+
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+
+        /* ============ 配置区 ============ */
+        .cfg-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 0;
+            border-bottom: 1px dashed var(--border-subtle);
+            font-size: 13px;
+        }
+
+        .cfg-row:last-child { border-bottom: none; }
+
+        .cfg-row .desc { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
+
+        .switch {
+            position: relative;
+            width: 40px; height: 22px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-input);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: all var(--transition);
+        }
+
+        .switch.on { background: rgba(212, 168, 83, 0.25); border-color: var(--accent); }
+        .switch.on::after { left: 20px; background: var(--accent); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+        .empty-tip { color: var(--text-muted); font-size: 12px; padding: 20px 0; text-align: center; }
+    </style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+    <div class="topbar-logo">📊</div>
+    <span class="topbar-title">NanoClaw 管理后台</span>
+    <div class="topbar-links">
+        <a href="/" target="_blank">用户端</a>
+        <a href="/agent" target="_blank">客服端</a>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab active" data-page="dashboard">数据看板</button>
+    <button class="tab" data-page="quality">质检中心</button>
+    <button class="tab" data-page="voc">VOC 洞察</button>
+    <button class="tab" data-page="config">系统配置</button>
+</div>
+
+<div class="content">
+
+    <!-- ============ 数据看板 ============ -->
+    <div class="page active" id="page-dashboard">
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi-card"><div class="label">对话总量</div><div class="value" id="kpiSessions">-</div></div>
+            <div class="kpi-card"><div class="label">消息总数</div><div class="value" id="kpiMessages">-</div></div>
+            <div class="kpi-card"><div class="label">AI 解决率</div><div class="value" id="kpiResolve">-</div>
+                <div class="delta up" id="kpiResolveDelta">转人工率越低越好</div></div>
+            <div class="kpi-card"><div class="label">在途工单</div><div class="value" id="kpiTickets">-</div></div>
+            <div class="kpi-card"><div class="label">累计订单</div><div class="value" id="kpiOrders">-</div></div>
+            <div class="kpi-card"><div class="label">自动退款笔数</div><div class="value" id="kpiRefunds">-</div>
+                <div class="delta up">风控规则引擎放行</div></div>
+        </div>
+
+        <div class="panel-grid">
+            <div class="panel">
+                <h3>近 7 日对话量趋势</h3>
+                <svg class="trend-svg" id="trendSvg" viewBox="0 0 600 180" preserveAspectRatio="none"></svg>
+            </div>
+
+            <div class="panel">
+                <h3>渠道分布</h3>
+                <div id="channelBars">加载中...</div>
+            </div>
+
+            <div class="panel wide">
+                <h3>售后工单概览</h3>
+                <div id="ticketTable"><div class="empty-tip">加载中...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 质检中心 ============ -->
+    <div class="page" id="page-quality">
+        <div class="panel">
+            <h3>AI 会话质检（规则评分：完整性 / 响应质量 / 情绪处理 / 转人工合规）</h3>
+            <div id="qualityTable"><div class="empty-tip">加载中...</div></div>
+        </div>
+    </div>
+
+    <!-- ============ VOC 洞察 ============ -->
+    <div class="page" id="page-voc">
+        <div class="panel-grid">
+            <div class="panel">
+                <h3>用户热点问题 TOP10</h3>
+                <div id="vocBars">加载中...</div>
+            </div>
+
+            <div class="panel">
+                <h3>情感分布</h3>
+                <div id="sentimentBars">加载中...</div>
+            </div>
+
+            <div class="panel wide">
+                <h3>典型用户原声</h3>
+                <div id="vocQuotes"><div class="empty-tip">加载中...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 系统配置 ============ -->
+    <div class="page" id="page-config">
+        <div class="panel-grid">
+            <div class="panel">
+                <h3>自动化策略</h3>
+                <div id="autoCfg">加载中...</div>
+            </div>
+
+            <div class="panel">
+                <h3>退款风控阈值（refund_policy.py）</h3>
+                <div id="riskCfg">加载中...</div>
+            </div>
+
+            <div class="panel wide">
+                <h3>知识库管理</h3>
+                <div id="kbCfg">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ======================================================
+       Tab 切换
+    ======================================================= */
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('page-' + tab.dataset.page).classList.add('active');
+        });
+    });
+
+    function escapeHtml(t) {
+        const d = document.createElement('div');
+        d.textContent = t == null ? '' : t;
+        return d.innerHTML;
+    }
+
+    /* ======================================================
+       数据看板
+    ======================================================= */
+    async function loadDashboard() {
+        try {
+            const stats = await (await fetch('/api/stats')).json();
+
+            document.getElementById('kpiSessions').textContent = stats.sessionCount;
+            document.getElementById('kpiMessages').textContent = stats.messageCount;
+            document.getElementById('kpiResolve').textContent =
+                (stats.aiResolveRate * 100).toFixed(0) + '%';
+            document.getElementById('kpiTickets').textContent = stats.openTickets;
+            document.getElementById('kpiOrders').textContent = stats.orderCount;
+            document.getElementById('kpiRefunds').textContent = stats.autoRefundCount;
+
+            // 折线图
+            renderTrend(stats.daily);
+
+            // 渠道分布
+            const total = Math.max(1, stats.sessionCount);
+            document.getElementById('channelBars').innerHTML = Object.entries(stats.channels)
+                .map(([ch, n]) => `
+                    <div class="bar-row">
+                        <span class="bar-label">${escapeHtml(ch)}</span>
+                        <div class="bar-track"><div class="bar-fill" style="width:${(n / total * 100).toFixed(0)}%"></div></div>
+                        <span class="bar-value">${n}</span>
+                    </div>
+                `).join('') || '<div class="empty-tip">暂无数据</div>';
+
+            // 工单表
+            document.getElementById('ticketTable').innerHTML = stats.recentTickets.length
+                ? `<table>
+                    <tr><th>工单号</th><th>类型</th><th>关联订单</th><th>状态</th><th>优先级</th><th>创建时间</th></tr>
+                    ${stats.recentTickets.map(t => `
+                        <tr>
+                            <td class="mono">${escapeHtml(t.ticket_id)}</td>
+                            <td><span class="pill ${t.type === '投诉' ? 'red' : 'gold'}">${escapeHtml(t.type)}</span></td>
+                            <td class="mono">${escapeHtml(t.order_id || '-')}</td>
+                            <td><span class="pill ${t.status === '已完成' ? 'green' : 'blue'}">${escapeHtml(t.status)}</span></td>
+                            <td>${escapeHtml(t.priority)}</td>
+                            <td class="mono">${escapeHtml((t.created_at || '').slice(0, 16))}</td>
+                        </tr>`).join('')}
+                   </table>`
+                : '<div class="empty-tip">暂无工单</div>';
+        } catch (e) {
+            document.getElementById('kpiSessions').textContent = '加载失败';
+        }
+    }
+
+    function renderTrend(daily) {
+        const svg = document.getElementById('trendSvg');
+        if (!daily || !daily.length) {
+            svg.innerHTML = '';
+            return;
+        }
+        const W = 600, H = 180, PAD = 24;
+        const max = Math.max(...daily.map(d => d.count), 1);
+        const step = (W - PAD * 2) / Math.max(daily.length - 1, 1);
+        const pts = daily.map((d, i) => [
+            PAD + i * step,
+            H - PAD - (d.count / max) * (H - PAD * 2),
+        ]);
+        const polyline = pts.map(p => p.join(',')).join(' ');
+
+        svg.innerHTML = `
+            ${daily.map((d, i) => `
+                <circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="3.5" fill="var(--accent)"/>
+                <text x="${pts[i][0]}" y="${H - 6}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${d.date.slice(5)}</text>
+                <text x="${pts[i][0]}" y="${pts[i][1] - 9}" fill="var(--text-secondary)" font-size="10" text-anchor="middle">${d.count}</text>
+            `).join('')}
+            <polyline points="${polyline}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        `;
+    }
+
+    /* ======================================================
+       质检中心
+    ======================================================= */
+    async function loadQuality() {
+        const el = document.getElementById('qualityTable');
+        try {
+            const items = await (await fetch('/api/quality')).json();
+            if (!items.length) {
+                el.innerHTML = '<div class="empty-tip">暂无会话数据</div>';
+                return;
+            }
+            el.innerHTML = `<table>
+                <tr><th>会话</th><th>轮次</th><th>完整性</th><th>响应质量</th><th>情绪处理</th><th>综合分</th><th>结论</th></tr>
+                ${items.map(q => {
+                    const cls = q.score >= 85 ? 'good' : q.score >= 70 ? 'mid' : 'bad';
+                    const pill = q.score >= 85 ? 'green' : q.score >= 70 ? 'gold' : 'red';
+                    return `<tr>
+                        <td>${escapeHtml(q.username)}</td>
+                        <td>${q.rounds}</td>
+                        <td><span class="score ${q.completeness >= 85 ? 'good' : q.completeness >= 70 ? 'mid' : 'bad'}">${q.completeness}</span></td>
+                        <td><span class="score ${q.response >= 85 ? 'good' : q.response >= 70 ? 'mid' : 'bad'}">${q.response}</span></td>
+                        <td><span class="score ${q.emotion >= 85 ? 'good' : q.emotion >= 70 ? 'mid' : 'bad'}">${q.emotion}</span></td>
+                        <td><span class="score ${cls}">${q.score}</span></td>
+                        <td><span class="pill ${pill}">${q.verdict}</span></td>
+                    </tr>`;
+                }).join('')}
+            </table>`;
+        } catch (e) {
+            el.innerHTML = '<div class="empty-tip">加载失败</div>';
+        }
+    }
+
+    /* ======================================================
+       VOC 洞察
+    ======================================================= */
+    async function loadVoc() {
+        try {
+            const voc = await (await fetch('/api/voc')).json();
+
+            const maxTopic = Math.max(...voc.topics.map(t => t.count), 1);
+            document.getElementById('vocBars').innerHTML = voc.topics.map(t => `
+                <div class="bar-row">
+                    <span class="bar-label">${escapeHtml(t.topic)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${(t.count / maxTopic * 100).toFixed(0)}%"></div></div>
+                    <span class="bar-value">${t.count}</span>
+                </div>
+            `).join('') || '<div class="empty-tip">暂无数据</div>';
+
+            const maxSent = Math.max(...voc.sentiments.map(s => s.count), 1);
+            document.getElementById('sentimentBars').innerHTML = voc.sentiments.map(s => `
+                <div class="bar-row">
+                    <span class="bar-label">${escapeHtml(s.label)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${(s.count / maxSent * 100).toFixed(0)}%;${s.label === '负面' ? 'background:linear-gradient(90deg,var(--danger),#b91c1c)' : ''}"></div></div>
+                    <span class="bar-value">${s.count}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('vocQuotes').innerHTML = voc.quotes.length
+                ? `<table><tr><th>用户原声</th><th>情感</th><th>会话</th></tr>
+                    ${voc.quotes.map(q => `
+                        <tr>
+                            <td style="max-width:600px;">"${escapeHtml(q.text)}"</td>
+                            <td><span class="pill ${q.sentiment === '负面' ? 'red' : q.sentiment === '正面' ? 'green' : 'gold'}">${q.sentiment}</span></td>
+                            <td>${escapeHtml(q.username)}</td>
+                        </tr>`).join('')}
+                   </table>`
+                : '<div class="empty-tip">暂无用户原声</div>';
+        } catch (e) {
+            document.getElementById('vocBars').innerHTML = '<div class="empty-tip">加载失败</div>';
+        }
+    }
+
+    /* ======================================================
+       系统配置
+    ======================================================= */
+    async function loadConfig() {
+        try {
+            const cfg = await (await fetch('/api/config')).json();
+
+            const switchRow = (name, desc, on, key) => `
+                <div class="cfg-row">
+                    <div>
+                        <div>${name}</div>
+                        <div class="desc">${desc}</div>
+                    </div>
+                    <div class="switch ${on ? 'on' : ''}" data-cfg="${key}" title="演示环境仅展示，需在代码中修改"></div>
+                </div>
+            `;
+
+            document.getElementById('autoCfg').innerHTML = `
+                ${switchRow('自动退款总开关', '关闭时所有退款转人工（上线初期建议关闭观察）', cfg.autoRefundEnabled, 'autoRefund')}
+                ${switchRow('游客免登录咨询', '游客可直接使用商品搜索等公共能力', true, 'guest')}
+                ${switchRow('会话历史恢复', '登录后自动恢复账号级历史会话', true, 'history')}
+            `;
+
+            document.getElementById('riskCfg').innerHTML = `
+                ${cfg.thresholds.map(t => `
+                    <div class="cfg-row">
+                        <div>
+                            <div>${escapeHtml(t.name)}</div>
+                            <div class="desc">${escapeHtml(t.desc)}</div>
+                        </div>
+                        <div class="mono" style="color:var(--accent);font-size:14px;">${escapeHtml(String(t.value))}</div>
+                    </div>
+                `).join('')}
+            `;
+
+            document.getElementById('kbCfg').innerHTML = `
+                <table>
+                    <tr><th>知识条目</th><th>类型</th><th>状态</th></tr>
+                    ${cfg.knowledge.map(k => `
+                        <tr>
+                            <td>${escapeHtml(k.name)}</td>
+                            <td><span class="pill blue">${escapeHtml(k.type)}</span></td>
+                            <td><span class="pill green">生效中</span></td>
+                        </tr>`).join('')}
+                </table>
+                <div class="cfg-row" style="margin-top:10px;">
+                    <div class="desc">演示环境：知识条目来源于 data/goods.json 与内置售后政策，修改后重启生效。</div>
+                </div>
+            `;
+
+            // 开关点击 → 提示（演示级只读）
+            document.querySelectorAll('.switch[data-cfg]').forEach(sw => {
+                sw.addEventListener('click', () => {
+                    alert('演示环境配置为只读。自动退款开关请修改 agent/tools/ecom/refund_policy.py 中的 AUTO_APPROVE_ENABLED。');
+                });
+            });
+        } catch (e) {
+            document.getElementById('autoCfg').innerHTML = '<div class="empty-tip">加载失败</div>';
+        }
+    }
+
+    /* ======================================================
+       启动
+    ======================================================= */
+    loadDashboard();
+    loadQuality();
+    loadVoc();
+    loadConfig();
+    setInterval(() => { loadDashboard(); }, 30000);
+</script>
+
+<!-- ===== 生产落地 P0-1.2：API 鉴权支持（REQUIRE_API_AUTH=true 时生效）=====
+     追加式改动，不修改上方任何现有代码：
+     1. 包装 window.fetch，自动为 /api/* 请求附带 Authorization: Bearer <JWT>
+     2. 收到 401/403 时弹出登录遮罩（调 /api/auth/login 换取 token）
+     默认模式（REQUIRE_API_AUTH=false）不会出现 401/403，本脚本无任何可见影响。 -->
+<script>
+(function () {
+    var TOKEN_KEY = 'nanoclaw_admin_token';
+    var origFetch = window.fetch.bind(window);
+    var overlayVisible = false;
+
+    // ---- fetch 包装：自动携带 token ----
+    window.fetch = function (input, init) {
+        init = init || {};
+        var token = null;
+        try { token = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+
+        if (token) {
+            var h = init.headers;
+            if (h && typeof h.set === 'function') {
+                h.set('Authorization', 'Bearer ' + token);   // Headers 实例
+            } else {
+                init.headers = Object.assign({}, h || {}, {  // 普通对象
+                    'Authorization': 'Bearer ' + token
+                });
+            }
+        }
+
+        return origFetch(input, init).then(function (resp) {
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            var isLoginReq = url.indexOf('/api/auth/login') >= 0;
+            if (!isLoginReq && (resp.status === 401 || resp.status === 403)) {
+                showLogin();
+            }
+            return resp;
+        });
+    };
+
+    // ---- 登录遮罩（按需创建） ----
+    function showLogin() {
+        if (overlayVisible) return;
+        overlayVisible = true;
+
+        var wrap = document.createElement('div');
+        wrap.id = 'auth-overlay';
+        wrap.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.72);' +
+            'display:flex;align-items:center;justify-content:center;z-index:99999;';
+        wrap.innerHTML =
+            '<div style="background:#fff;border-radius:14px;padding:32px 34px;width:320px;' +
+            'box-shadow:0 20px 60px rgba(0,0,0,.35);font-family:system-ui,sans-serif;">' +
+            '<h3 style="margin:0 0 6px;font-size:18px;color:#0f172a;">管理后台登录</h3>' +
+            '<p style="margin:0 0 18px;font-size:12px;color:#64748b;">' +
+            '本页面 API 已启用鉴权，请用管理员账号登录（演示：admin / admin123456）</p>' +
+            '<input id="auth-user" placeholder="账号" style="width:100%;box-sizing:border-box;' +
+            'padding:10px 12px;margin-bottom:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;"/>' +
+            '<input id="auth-pass" type="password" placeholder="密码" style="width:100%;box-sizing:border-box;' +
+            'padding:10px 12px;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;"/>' +
+            '<div id="auth-err" style="color:#dc2626;font-size:12px;margin-bottom:10px;display:none;"></div>' +
+            '<button id="auth-go" style="width:100%;padding:10px;border:0;border-radius:8px;' +
+            'background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">登录</button></div>';
+        document.body.appendChild(wrap);
+
+        var doLogin = function () {
+            var u = document.getElementById('auth-user').value.trim();
+            var p = document.getElementById('auth-pass').value;
+            var errEl = document.getElementById('auth-err');
+            // 登录请求用原始 fetch，避免包装器注入/递归
+            origFetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.ok && data.token) {
+                    try { localStorage.setItem(TOKEN_KEY, data.token); } catch (e) {}
+                    location.reload();          // 带 token 重新拉取全部数据
+                } else {
+                    errEl.textContent = data.message || '账号或密码错误';
+                    errEl.style.display = 'block';
+                }
+            }).catch(function () {
+                errEl.textContent = '网络异常，请重试';
+                errEl.style.display = 'block';
+            });
+        };
+        document.getElementById('auth-go').onclick = doLogin;
+        wrap.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') doLogin();
+        });
+    }
+})();
+</script>
+
+</body>
+</html>

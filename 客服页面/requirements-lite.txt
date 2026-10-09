@@ -1,0 +1,41 @@
+# NanoClaw 精简版依赖清单（生产落地 P1-2.4）
+# 版本锁定自当前已验证可运行的环境（conda: nanopoclaw_env, Python 3.11.16）
+# 原始 conda 环境全量 dump 见 requirements.txt（400+ 包，保留不动）
+
+# ===== 核心依赖 =====
+openai==3.6.0
+fastapi==0.141.1
+uvicorn==0.52.4
+websockets==15.0.1
+python-dotenv==1.2.3
+pydantic==2.13.5
+httpx==0.28.1
+
+# ===== 数据库（P0-1.1 数据层，配合 db/ 模块）=====
+sqlalchemy==2.0.52
+aiomysql==0.3.2
+redis==8.1.0
+bcrypt==5.0.0
+PyJWT==2.13.0
+
+# ===== 渠道 SDK =====
+qq-botpy==1.2.1
+lark-oapi==1.7.3
+
+# ===== MCP =====
+mcp==1.29.1
+
+# ===== 工具 =====
+ddgs==9.16.0
+html2text==2025.4.15
+curl_cffi==0.16.3
+PyYAML==6.0.3
+tenacity==9.1.4
+
+# ===== 开发与测试 =====
+pytest==9.1.1
+pytest-asyncio==1.4.0
+
+# ===== RAG 知识库（可选，按需安装，见 rag/knowledge_base.py）=====
+# chromadb
+# sentence-transformers

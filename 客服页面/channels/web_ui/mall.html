@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小纳优选 · 商品陈列</title>
+<style>
+    /* ---------- 基础 ---------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+        background: #f5f6f8;
+        color: #26282c;
+        min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+    img { display: block; }
+
+    /* ---------- 顶部导航（sticky，客服按钮常驻可见） ---------- */
+    .site-header {
+        position: sticky; top: 0; z-index: 100;
+        background: rgba(255, 255, 255, .96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid #ececf0;
+    }
+    .header-inner {
+        max-width: 1200px; margin: 0 auto; padding: 14px 24px;
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .brand h1 { font-size: 22px; letter-spacing: 1px; color: #1f2229; }
+    .brand h1 .accent { color: #ff5a1f; }
+    .brand p { font-size: 12px; color: #9aa0a8; margin-top: 2px; letter-spacing: 2px; }
+
+    /* 客服对话按钮（本页核心入口） */
+    .service-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 22px; border-radius: 999px;
+        background: linear-gradient(135deg, #ff7a18, #ff4d00);
+        color: #fff; font-size: 15px; font-weight: 600;
+        box-shadow: 0 4px 14px rgba(255, 77, 0, .32);
+        transition: transform .18s ease, box-shadow .18s ease;
+        white-space: nowrap;
+    }
+    .service-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 77, 0, .42);
+    }
+    .service-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+    /* ---------- 登录入口 ---------- */
+    .header-actions {
+        display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .login-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 9px 20px; border-radius: 999px;
+        background: #fff; color: #ff5a1f; font-size: 14px; font-weight: 600;
+        border: 1px solid #ffb98a; cursor: pointer;
+        transition: all .15s ease; white-space: nowrap;
+    }
+    .login-btn:hover { background: #fff4ec; border-color: #ff8a4d; }
+    .login-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* 已登录：用户信息 + 退出 */
+    .user-box {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 5px 6px 5px 14px; border-radius: 999px;
+        background: #fff4ec; border: 1px solid #ffe3d2;
+        white-space: nowrap;
+    }
+    .user-box .uname {
+        font-size: 14px; color: #8a4a20; font-weight: 600;
+        max-width: 9em; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-box .logout-link {
+        font-size: 13px; color: #9aa0a8; cursor: pointer; padding: 4px 10px;
+        border-radius: 999px;
+    }
+    .user-box .logout-link:hover { color: #ff5a1f; background: #fff; }
+
+    /* ---------- 登录对话框 ---------- */
+    .login-overlay {
+        position: fixed; inset: 0; z-index: 200;
+        background: rgba(20, 22, 28, .45);
+        backdrop-filter: blur(3px);
+        display: none; align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .login-overlay.active { display: flex; }
+    .login-dialog {
+        width: 100%; max-width: 380px;
+        background: #fff; border-radius: 16px;
+        padding: 30px 28px 26px;
+        box-shadow: 0 20px 60px rgba(20, 22, 28, .25);
+        animation: dlgIn .18s ease;
+    }
+    @keyframes dlgIn {
+        from { opacity: 0; transform: translateY(14px) scale(.98); }
+        to   { opacity: 1; transform: none; }
+    }
+    .login-dialog h3 { font-size: 19px; color: #1f2229; margin-bottom: 6px; }
+    .login-dialog .sub { font-size: 12.5px; color: #9aa0a8; line-height: 1.7; margin-bottom: 18px; }
+    .login-dialog .field { margin-bottom: 14px; }
+    .login-dialog label { display: block; font-size: 13px; color: #55585f; margin-bottom: 6px; }
+    .login-dialog input {
+        width: 100%; padding: 11px 14px; border-radius: 10px;
+        border: 1px solid #e4e6ea; font-size: 14px; outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+        box-sizing: border-box;
+    }
+    .login-dialog input:focus {
+        border-color: #ff8a4d;
+        box-shadow: 0 0 0 3px rgba(255, 90, 31, .12);
+    }
+    .login-dialog .error {
+        font-size: 12.5px; color: #f56c6c; min-height: 1.2em; margin: 2px 0 10px;
+        visibility: hidden;
+    }
+    .login-dialog .error.active { visibility: visible; }
+    .login-actions { display: flex; gap: 10px; }
+    .login-submit {
+        flex: 1; padding: 11px 0; border: none; border-radius: 10px;
+        background: linear-gradient(135deg, #ff7a18, #ff4d00);
+        color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(255, 77, 0, .30);
+        transition: transform .15s ease;
+    }
+    .login-submit:hover { transform: translateY(-1px); }
+    .login-submit:disabled { opacity: .6; cursor: wait; transform: none; }
+    .login-cancel {
+        padding: 11px 22px; border-radius: 10px; border: 1px solid #e4e6ea;
+        background: #fff; color: #55585f; font-size: 15px; cursor: pointer;
+    }
+    .login-cancel:hover { background: #f5f6f8; }
+
+    /* ---------- 主区域 ---------- */
+    main { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
+
+    .hero {
+        margin: 28px 0 24px; padding: 34px 32px;
+        border-radius: 16px;
+        background: linear-gradient(120deg, #fff4ec 0%, #ffe9dd 55%, #fff8f3 100%);
+        border: 1px solid #ffe3d2;
+    }
+    .hero h2 { font-size: 26px; color: #2b1c12; margin-bottom: 8px; }
+    .hero h2 em { font-style: normal; color: #ff4d00; }
+    .hero p { font-size: 14px; color: #8a7466; line-height: 1.7; }
+
+    /* 分类筛选 */
+    .tabs {
+        display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px;
+    }
+    .tab {
+        padding: 7px 18px; border-radius: 999px; font-size: 14px;
+        background: #fff; color: #55585f; border: 1px solid #e4e6ea;
+        cursor: pointer; transition: all .15s ease; user-select: none;
+    }
+    .tab:hover { border-color: #ffb98a; color: #ff5a1f; }
+    .tab.active {
+        background: linear-gradient(135deg, #ff7a18, #ff4d00);
+        color: #fff; border-color: transparent;
+        box-shadow: 0 3px 10px rgba(255, 77, 0, .28);
+    }
+
+    /* 商品网格 */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 20px;
+    }
+    .card {
+        background: #fff; border-radius: 14px; overflow: hidden;
+        border: 1px solid #eef0f3;
+        transition: transform .2s ease, box-shadow .2s ease;
+        display: flex; flex-direction: column;
+    }
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(30, 32, 38, .10);
+    }
+    .card .pic { position: relative; aspect-ratio: 1 / 1; background: #f3f4f6; }
+    .card .pic img { width: 100%; height: 100%; object-fit: cover; }
+    .card .cat-tag {
+        position: absolute; left: 10px; top: 10px;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: 12px; color: #fff;
+        background: rgba(30, 32, 38, .55); backdrop-filter: blur(4px);
+    }
+    .card .off-tag {
+        position: absolute; right: 10px; top: 10px;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: 12px; color: #fff; background: #9aa0a8;
+    }
+    .card .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .card .name { font-size: 15px; font-weight: 600; color: #26282c; line-height: 1.4; }
+    .card .hl {
+        font-size: 12.5px; color: #9aa0a8; line-height: 1.55;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; min-height: 2.9em;
+    }
+    .card .foot {
+        margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+    }
+    .card .price { color: #ff4d00; font-size: 20px; font-weight: 700; }
+    .card .price .yen { font-size: 13px; margin-right: 1px; }
+    .card .stock { font-size: 12px; color: #9aa0a8; }
+    .card .stock.low { color: #e6a23c; }
+    .card .stock.out { color: #f56c6c; }
+
+    /* 加载 / 错误 / 空态 */
+    .state { text-align: center; padding: 60px 0; color: #9aa0a8; font-size: 14px; }
+    .state .retry {
+        margin-top: 14px; display: inline-block; padding: 8px 26px;
+        border-radius: 999px; border: 1px solid #ffb98a; color: #ff5a1f;
+        cursor: pointer; font-size: 14px; background: #fff;
+    }
+    .state .retry:hover { background: #fff4ec; }
+
+    footer {
+        text-align: center; padding: 26px 0 34px;
+        color: #b6bac1; font-size: 12.5px; border-top: 1px solid #ececf0;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 560px) {
+        .header-inner { padding: 12px 16px; flex-wrap: wrap; }
+        .brand h1 { font-size: 19px; }
+        .header-actions { width: 100%; justify-content: space-between; }
+        .service-btn { padding: 9px 16px; font-size: 14px; flex: 1; justify-content: center; }
+        .login-btn { padding: 9px 16px; font-size: 13px; }
+        main { padding: 0 14px 36px; }
+        .hero { padding: 22px 18px; margin: 18px 0 16px; }
+        .hero h2 { font-size: 20px; }
+        .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .card .name { font-size: 13.5px; }
+        .card .price { font-size: 17px; }
+    }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="header-inner">
+        <div class="brand">
+            <h1>小纳<span class="accent">优选</span></h1>
+            <p>运动 · 数码 · 品质生活</p>
+        </div>
+        <!-- 右侧操作区：登录入口 + 客服对话按钮 -->
+        <div class="header-actions">
+            <!-- 登录入口：未登录显示「登录」，登录后显示用户名 + 退出 -->
+            <div id="authArea"></div>
+            <!-- 客服对话按钮：跳转到智能客服对话页（登录态自动带过去） -->
+            <a class="service-btn" href="/" title="联系智能客服小纳">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3C6.48 3 2 6.92 2 11.74c0 2.6 1.32 4.94 3.42 6.53-.16 1.12-.68 2.3-1.66 3.52-.24.3-.02.73.36.7 2.3-.18 4.02-.96 5.16-1.74.88.2 1.8.31 2.72.31 5.52 0 10-3.92 10-8.74S17.52 3 12 3zM7.5 13.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                </svg>
+                客服对话
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- 登录对话框（商城页直接登录，无需进入客服页） -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-dialog">
+        <h3>账号登录</h3>
+        <p class="sub">
+            登录后可在客服对话中查询订单、物流、办理售后。<br>
+            演示账号：han / 123456 或 li / 123456
+        </p>
+        <div class="field">
+            <label for="loginUsername">用户名</label>
+            <input type="text" id="loginUsername" placeholder="han" autocomplete="username">
+        </div>
+        <div class="field">
+            <label for="loginPassword">密码</label>
+            <input type="password" id="loginPassword" placeholder="123456" autocomplete="current-password">
+        </div>
+        <div class="error" id="loginError"></div>
+        <div class="login-actions">
+            <button class="login-submit" id="loginSubmit">登 录</button>
+            <button class="login-cancel" id="loginCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<main>
+    <section class="hero">
+        <h2>为你严选每一件<em>好物</em></h2>
+        <p>跑鞋、服饰到数码配件，均为店内实测精选。看中哪件？点击右上角「客服对话」，智能客服小纳帮你查库存、查订单、推荐尺码。</p>
+    </section>
+
+    <nav class="tabs" id="tabs"></nav>
+    <section class="grid" id="grid"></section>
+    <div class="state" id="state">正在加载商品…</div>
+</main>
+
+<footer>小纳优选 · 演示商城 —— 商品数据来自商家服务，客服由智能体「小纳」提供</footer>
+
+<script>
+/* ================= 商品图片 =================
+   按 SKU 精确配图；未命中 SKU 时按品类兜底，最终兜底通用图。
+   图片统一经文生图服务生成（URL 编码 prompt），无占位图。 */
+var IMG_API = "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image";
+
+var SKU_PROMPTS = {
+    "RUN-001":   "Lightweight gray and white running shoe with breathable one-piece knit upper, clean studio product photography on light background, soft shadow, e-commerce style",
+    "RUN-002":   "Black and cyan cushioned running shoe with thick responsive midsole, professional studio product photography, white background",
+    "RUN-003":   "Race-grade carbon plate marathon racing shoe, sleek aerodynamic design, red and white colorway, dramatic studio product shot",
+    "RUN-004":   "Women's running shoe in pink gradient colors, slim silhouette, elegant product photography on soft pink background",
+    "RUN-005":   "Retro 1980s classic running shoe, cream and navy colorway, gum rubber outsole, vintage studio product photography",
+    "CAS-001":   "Classic low-top canvas sneaker in off-white with rubber toe cap, clean minimal studio product photography",
+    "CAS-002":   "Brown full-grain leather business dress shoes, polished finish, formal product photography on wooden surface",
+    "CAS-003":   "Chunky retro platform dad sneakers with layered sole, beige multi-color panels, street fashion studio product shot",
+    "CAS-004":   "Breathable perforated clogs in light blue, casual summer footwear, clean studio product photography",
+    "TSHIRT-001":"Quick-dry athletic t-shirt in navy blue, neatly folded, moisture-wicking fabric texture, studio product photography",
+    "TSHIRT-002":"Plain white cotton t-shirt on wooden hanger, minimal studio product photography, soft natural light",
+    "JACKET-001":"Lightweight packable windbreaker jacket in vivid orange, thin technical fabric, outdoor product photography",
+    "JACKET-002":"Three-in-one outdoor hardshell jacket in dark green, waterproof mountaineering wear, studio product photography",
+    "PANTS-001": "Black stretchy athletic jogger pants with zip pockets, folded sportswear product photography",
+    "HOODIE-001":"Cozy fleece-lined hoodie in heather gray, warm winter sweatshirt, product photography on neutral background",
+    "EAR-001":   "Premium wireless over-ear noise cancelling headphones in matte black, studio lighting, clean tech product shot",
+    "EAR-002":   "White semi-in-ear wireless earbuds with open charging case, clean tech product photography on light background",
+    "WATCH-001": "Sport smartwatch with black silicone strap and vibrant fitness display on screen, studio product photography",
+    "WATCH-002": "Elegant business quartz wristwatch with brown leather strap and white dial, luxury studio product photography",
+    "BAG-001":   "Lightweight minimalist commuter backpack in dark gray, clean studio product photography"
+};
+
+var CATEGORY_PROMPTS = {
+    "运动鞋":  "Modern running shoe silhouette, sports footwear studio product photography, clean lighting",
+    "休闲鞋":  "Casual lifestyle sneaker, clean studio product photography on light background",
+    "运动服饰": "Athletic sportswear apparel flat lay, activewear product photography, neutral background",
+    "数码配件": "Consumer electronics accessories, earbuds and smartwatch, clean minimal studio product shot"
+};
+
+var DEFAULT_PROMPT = "E-commerce product display, premium goods on clean studio background, professional product photography";
+
+function imgUrl(prompt) {
+    return IMG_API + "?prompt=" + encodeURIComponent(prompt) + "&image_size=square";
+}
+
+/* 三级兜底：SKU 专属 → 品类通用 → 默认图 */
+function productImg(g) {
+    if (g.sku && SKU_PROMPTS[g.sku]) return imgUrl(SKU_PROMPTS[g.sku]);
+    if (g.category && CATEGORY_PROMPTS[g.category]) return imgUrl(CATEGORY_PROMPTS[g.category]);
+    return imgUrl(DEFAULT_PROMPT);
+}
+function categoryImg(g) {
+    return (g.category && CATEGORY_PROMPTS[g.category])
+        ? imgUrl(CATEGORY_PROMPTS[g.category]) : imgUrl(DEFAULT_PROMPT);
+}
+
+/* 图片加载失败时逐级降级（SKU 图 → 品类图 → 默认图） */
+function onImgError(img, g) {
+    var step = img.dataset.fallback || "0";
+    if (step === "0") {
+        img.dataset.fallback = "1";
+        img.src = categoryImg(g);
+    } else if (step === "1") {
+        img.dataset.fallback = "2";
+        img.src = imgUrl(DEFAULT_PROMPT);
+    }
+}
+
+/* ================= 数据加载与渲染 ================= */
+
+/* 同源（http 服务）走相对路径；本地 file:// 直开时回退到本机服务地址 */
+var API_URL = location.protocol.indexOf("http") === 0
+    ? "/api/goods"
+    : "http://127.0.0.1:8080/api/goods";
+
+var allGoods = [];
+var activeCat = "全部";
+
+var tabsEl = document.getElementById("tabs");
+var gridEl = document.getElementById("grid");
+var stateEl = document.getElementById("state");
+
+function fmtPrice(p) {
+    var n = Number(p);
+    if (isNaN(n)) return p;
+    return n % 1 === 0 ? String(n) : n.toFixed(2);
+}
+
+function stockChip(g) {
+    if (typeof g.stock !== "number") return "";
+    if (g.stock <= 0) return '<span class="stock out">已售罄</span>';
+    if (g.stock <= 10) return '<span class="stock low">仅剩 ' + g.stock + ' 件</span>';
+    return '<span class="stock">库存 ' + g.stock + ' 件</span>';
+}
+
+function esc(s) {
+    return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function renderTabs() {
+    var cats = ["全部"];
+    allGoods.forEach(function (g) {
+        if (g.category && cats.indexOf(g.category) < 0) cats.push(g.category);
+    });
+    tabsEl.innerHTML = cats.map(function (c) {
+        return '<span class="tab' + (c === activeCat ? " active" : "") + '" data-cat="' + esc(c) + '">' + esc(c) + "</span>";
+    }).join("");
+    tabsEl.querySelectorAll(".tab").forEach(function (el) {
+        el.addEventListener("click", function () {
+            activeCat = el.dataset.cat;
+            renderTabs();
+            renderGrid();
+        });
+    });
+}
+
+function renderGrid() {
+    var list = activeCat === "全部"
+        ? allGoods
+        : allGoods.filter(function (g) { return g.category === activeCat; });
+
+    if (!list.length) {
+        gridEl.innerHTML = "";
+        stateEl.textContent = "该分类下暂无商品";
+        stateEl.style.display = "block";
+        return;
+    }
+    stateEl.style.display = "none";
+
+    gridEl.innerHTML = list.map(function (g) {
+        var off = (g.status && g.status !== "在售")
+            ? '<span class="off-tag">' + esc(g.status) + "</span>" : "";
+        return (
+            '<div class="card">' +
+              '<div class="pic">' +
+                '<img loading="lazy" alt="' + esc(g.name || g.sku || "商品") + '" src="' + productImg(g) + '" ' +
+                     'onerror="onImgError(this, ' + esc(JSON.stringify({ sku: g.sku || "", category: g.category || "" })) + ')">' +
+                '<span class="cat-tag">' + esc(g.category || "精选") + "</span>" + off +
+              "</div>" +
+              '<div class="body">' +
+                '<div class="name">' + esc(g.name || g.sku) + "</div>" +
+                '<div class="hl">' + esc(g.highlights || g.description || "") + "</div>" +
+                '<div class="foot">' +
+                  '<span class="price"><span class="yen">¥</span>' + fmtPrice(g.price) + "</span>" +
+                  stockChip(g) +
+                "</div>" +
+              "</div>" +
+            "</div>"
+        );
+    }).join("");
+}
+
+function loadGoods() {
+    stateEl.style.display = "block";
+    stateEl.textContent = "正在加载商品…";
+    fetch(API_URL)
+        .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            allGoods = Array.isArray(data) ? data : [];
+            if (!allGoods.length) throw new Error("empty");
+            renderTabs();
+            renderGrid();
+        })
+        .catch(function () {
+            gridEl.innerHTML = "";
+            stateEl.innerHTML = "商品加载失败，请确认商城服务已启动（python main.py）<br>" +
+                '<span class="retry" id="retryBtn">重新加载</span>';
+            document.getElementById("retryBtn").addEventListener("click", loadGoods);
+        });
+}
+
+/* ================= 登录入口 =================
+   商城页直接登录（REST /api/auth/login），登录态经 localStorage
+   （nanoclaw_token / nanoclaw_username / nanoclaw_name）与客服对话页共享：
+   在此登录后点击「客服对话」跳转，对话页会凭 token 自动恢复登录，无需再次登录。 */
+
+var LOGIN_API = location.protocol.indexOf("http") === 0
+    ? "/api/auth/login"
+    : "http://127.0.0.1:8080/api/auth/login";
+
+var authAreaEl = document.getElementById("authArea");
+var loginOverlayEl = document.getElementById("loginOverlay");
+var loginUsernameEl = document.getElementById("loginUsername");
+var loginPasswordEl = document.getElementById("loginPassword");
+var loginErrorEl = document.getElementById("loginError");
+var loginSubmitEl = document.getElementById("loginSubmit");
+var loginCancelEl = document.getElementById("loginCancel");
+
+function lsGet(k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function lsSet(k, v) {
+    try { localStorage.setItem(k, v); } catch (e) {}
+}
+function lsDel(k) {
+    try { localStorage.removeItem(k); } catch (e) {}
+}
+
+function openLoginDialog() {
+    loginErrorEl.classList.remove("active");
+    loginErrorEl.textContent = "";
+    loginOverlayEl.classList.add("active");
+    setTimeout(function () { loginUsernameEl.focus(); }, 50);
+}
+function closeLoginDialog() {
+    loginOverlayEl.classList.remove("active");
+    loginPasswordEl.value = "";
+}
+
+/* 未登录：登录按钮；已登录：用户名 + 退出 */
+function renderAuthArea() {
+    var name = lsGet("nanoclaw_name");
+    var username = lsGet("nanoclaw_username");
+    if (lsGet("nanoclaw_token") && (name || username)) {
+        authAreaEl.innerHTML =
+            '<span class="user-box">' +
+                '<span class="uname">' + esc(name || username) + '</span>' +
+                '<span class="logout-link" id="logoutBtn">退出</span>' +
+            '</span>';
+        document.getElementById("logoutBtn").onclick = function () {
+            lsDel("nanoclaw_token");
+            lsDel("nanoclaw_username");
+            lsDel("nanoclaw_name");
+            renderAuthArea();
+        };
+    } else {
+        authAreaEl.innerHTML =
+            '<button class="login-btn" id="loginBtn" title="登录后可查询订单、办理售后">' +
+                '<svg viewBox="0 0 24 24"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.34 0-10 1.67-10 5v3h20v-3c0-3.33-6.66-5-10-5z"/></svg>' +
+                '登录' +
+            '</button>';
+        document.getElementById("loginBtn").onclick = openLoginDialog;
+    }
+}
+
+function submitLogin() {
+    var username = loginUsernameEl.value.trim();
+    var password = loginPasswordEl.value;
+    if (!username || !password) {
+        loginErrorEl.textContent = "请输入用户名和密码";
+        loginErrorEl.classList.add("active");
+        return;
+    }
+    loginSubmitEl.disabled = true;
+    fetch(LOGIN_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username, password: password })
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            loginSubmitEl.disabled = false;
+            if (!data.ok) {
+                loginErrorEl.textContent = data.message || "账号或密码错误";
+                loginErrorEl.classList.add("active");
+                return;
+            }
+            lsSet("nanoclaw_token", data.token);
+            lsSet("nanoclaw_username", data.username);
+            lsSet("nanoclaw_name", data.name || data.username);
+            closeLoginDialog();
+            renderAuthArea();
+        })
+        .catch(function () {
+            loginSubmitEl.disabled = false;
+            loginErrorEl.textContent = "网络异常，请确认服务已启动";
+            loginErrorEl.classList.add("active");
+        });
+}
+
+loginSubmitEl.addEventListener("click", submitLogin);
+loginCancelEl.addEventListener("click", closeLoginDialog);
+loginOverlayEl.addEventListener("click", function (e) {
+    if (e.target === loginOverlayEl) closeLoginDialog();
+});
+loginPasswordEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") submitLogin();
+});
+
+renderAuthArea();
+
+loadGoods();
+</script>
+</body>
+</html>

@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- =========================================================
+         页面基础配置
+    ========================================================== -->
+    <meta charset="UTF-8">
+
+    <!-- 移动端适配 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 浏览器标题 -->
+    <title>NanoClaw</title>
+
+    <!-- =========================================================
+         Markdown 渲染库
+         用于把后端返回的 Markdown 转换为 HTML
+         例如：
+             ## 标题
+             ```python
+             print("hello")
+             ```
+    ========================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- =========================================================
+         highlight.js 代码高亮
+         用于高亮 Python / JS / C++ 等代码
+    ========================================================== -->
+
+    <!-- 代码主题（浅色，配套鲜亮背景） -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css">
+
+    <!-- 高亮库 -->
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+
+    <!-- =========================================================
+         字体
+    ========================================================== -->
+
+    <!-- Google Fonts 预连接 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- JetBrains Mono 用于代码字体 -->
+    <!-- Noto Sans SC 用于中文显示 -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600&display=swap"
+          rel="stylesheet">
+
+    <!-- =========================================================
+         全局 CSS
+    ========================================================== -->
+    <style>
+
+        /* =====================================================
+           CSS 变量
+           统一管理颜色、圆角、阴影等
+        ====================================================== */
+        :root {
+
+            /* 背景颜色（鲜亮色系） */
+            --bg-primary: #eef4ff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e2ecfb;
+
+            /* 用户消息背景 */
+            --bg-user: #cfe3ff;
+
+            /* Bot 消息背景 */
+            --bg-bot: transparent;
+
+            /* 输入框背景 */
+            --bg-input: #ffffff;
+
+            /* 边框颜色 */
+            --border-subtle: rgba(30, 70, 140, 0.12);
+            --border-input: rgba(30, 70, 140, 0.22);
+
+            /* 文本颜色 */
+            --text-primary: #1e2a44;
+            --text-secondary: #4d5d7c;
+            --text-muted: #7c8aa5;
+
+            /* 强调色（金色） */
+            --accent: #d4a853;
+            --accent-hover: #e0b964;
+
+            /* 强调色上的文字（金色按钮等，深棕保证对比度） */
+            --text-on-accent: #3d2e10;
+
+            /* 聚焦光晕 */
+            --accent-glow: rgba(212, 168, 83, 0.25);
+
+            /* 代码块背景 */
+            --code-bg: #f5f8fe;
+
+            /* 滚动条颜色 */
+            --scrollbar: rgba(30, 70, 140, 0.18);
+            --scrollbar-hover: rgba(30, 70, 140, 0.32);
+
+            /* 阴影 */
+            --shadow-lg: 0 8px 32px rgba(30, 70, 140, 0.16);
+
+            /* 圆角 */
+            --radius: 12px;
+            --radius-sm: 8px;
+
+            /* 动画速度 */
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* =====================================================
+           全局初始化
+        ====================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 页面高度撑满 */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* =====================================================
+           body 整体布局
+        ====================================================== */
+        body {
+
+            /* 主字体 */
+            font-family: 'Noto Sans SC',
+                         -apple-system,
+                         BlinkMacSystemFont,
+                         sans-serif;
+
+            /* 背景 */
+            background: var(--bg-primary);
+
+            /* 文字颜色 */
+            color: var(--text-primary);
+
+            /* Flex 垂直布局 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =====================================================
+           顶栏
+        ====================================================== */
+        .topbar {
+
+            height: 56px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 12px;
+
+            border-bottom: 1px solid var(--border-subtle);
+
+            background: var(--bg-secondary);
+
+            flex-shrink: 0;
+
+            position: relative;
+        }
+
+        /* Logo */
+        .topbar-logo {
+
+            width: 28px;
+            height: 28px;
+
+            background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    #b8863a
+            );
+
+            border-radius: 7px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 14px;
+        }
+
+        /* 标题 */
+        .topbar-title {
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* 状态栏 */
+        .topbar-status {
+
+            position: absolute;
+            right: 20px;
+
+            display: flex;
+            align-items: center;
+
+            gap: 6px;
+
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* 状态圆点 */
+        .topbar-status .dot {
+
+            width: 6px;
+            height: 6px;
+
+            border-radius: 50%;
+
+            background: #4ade80;
+
+            transition: background var(--transition);
+        }
+
+        /* 离线状态 */
+        .topbar-status .dot.offline {
+            background: #ef4444;
+        }
+
+        /* =====================================================
+           消息区域
+        ====================================================== */
+
+        .messages-wrapper {
+
+            /* 占满剩余空间 */
+            flex: 1;
+
+            /* 允许纵向滚动 */
+            overflow-y: auto;
+
+            overflow-x: hidden;
+
+            scroll-behavior: smooth;
+        }
+
+        /* 滚动条 */
+        .messages-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-wrapper::-webkit-scrollbar-thumb {
+            background: var(--scrollbar);
+            border-radius: 3px;
+        }
+
+        .messages-wrapper::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-hover);
+        }
+
+        /* 消息内容居中 */
+        .messages-inner {
+
+            max-width: 780px;
+
+            margin: 0 auto;
+
+            padding: 24px 20px 16px;
+        }
+
+        /* =====================================================
+           单条消息
+        ====================================================== */
+
+        .msg-row {
+
+            display: flex;
+
+            gap: 14px;
+
+            margin-bottom: 28px;
+
+            animation: msg-in 0.35s ease-out;
+        }
+
+        /* 消息进入动画 */
+        @keyframes msg-in {
+
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 头像 */
+        .msg-avatar {
+
+            width: 32px;
+            height: 32px;
+
+            border-radius: 8px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 14px;
+
+            margin-top: 2px;
+        }
+
+        /* 用户头像 */
+        .msg-avatar.user {
+
+            background: linear-gradient(
+                    135deg,
+                    #3b82f6,
+                    #2563eb
+            );
+
+            color: white;
+
+            font-weight: 600;
+        }
+
+        /* Bot 头像 */
+        .msg-avatar.bot {
+
+            background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    #b8863a
+            );
+        }
+
+        /* 人工客服头像 */
+        .msg-avatar.human {
+
+            background: linear-gradient(
+                    135deg,
+                    #8b5cf6,
+                    #6d28d9
+            );
+        }
+
+        /* 人工客服消息名字 */
+        .msg-name {
+
+            font-size: 12px;
+
+            color: #8b5cf6;
+
+            font-weight: 600;
+
+            margin-bottom: 2px;
+        }
+
+        /* 消息主体 */
+        .msg-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 消息内容 */
+        .msg-content {
+
+            font-size: 15px;
+
+            line-height: 1.7;
+
+            word-break: break-word;
+        }
+
+        /* 用户消息样式 */
+        .msg-content.user-text {
+
+            background: var(--bg-user);
+
+            padding: 12px 16px;
+
+            border-radius: var(--radius);
+
+            display: inline-block;
+
+            max-width: 100%;
+        }
+
+        /* =====================================================
+           Markdown 样式
+        ====================================================== */
+
+        /* 段落 */
+        .msg-content p {
+            margin-bottom: 10px;
+        }
+
+        .msg-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 粗体 */
+        .msg-content strong {
+            color: #101a30;
+            font-weight: 600;
+        }
+
+        /* 行内代码 */
+        .msg-content code {
+
+            font-family: 'JetBrains Mono', monospace;
+
+            font-size: 13px;
+
+            background: var(--code-bg);
+
+            padding: 2px 6px;
+
+            border-radius: 4px;
+
+            color: #8a6320;
+        }
+
+        /* 代码块 */
+        .msg-content pre {
+
+            background: var(--code-bg);
+
+            border: 1px solid var(--border-subtle);
+
+            border-radius: var(--radius-sm);
+
+            padding: 16px;
+
+            margin: 12px 0;
+
+            overflow-x: auto;
+
+            position: relative;
+        }
+
+        .msg-content pre code {
+
+            background: none;
+
+            padding: 0;
+
+            color: var(--text-primary);
+        }
+
+        /* 引用块 */
+        .msg-content blockquote {
+
+            border-left: 3px solid var(--accent);
+
+            padding: 8px 16px;
+
+            margin: 12px 0;
+
+            background: rgba(212, 168, 83, 0.12);
+
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+
+        /* 列表 */
+        .msg-content ul,
+        .msg-content ol {
+
+            padding-left: 20px;
+
+            margin: 8px 0;
+        }
+
+        /* 表格 */
+        .msg-content table {
+
+            border-collapse: collapse;
+
+            margin: 12px 0;
+
+            width: 100%;
+        }
+
+        .msg-content th,
+        .msg-content td {
+
+            border: 1px solid var(--border-subtle);
+
+            padding: 8px 12px;
+
+            text-align: left;
+        }
+
+        .msg-content th {
+            background: var(--bg-tertiary);
+        }
+
+        /* =====================================================
+           代码复制按钮
+        ====================================================== */
+
+        .code-block-wrapper {
+            position: relative;
+        }
+
+        .copy-btn {
+
+            position: absolute;
+
+            top: 8px;
+            right: 8px;
+
+            background: rgba(30, 70, 140, 0.08);
+
+            border: 1px solid var(--border-subtle);
+
+            color: var(--text-muted);
+
+            font-size: 12px;
+
+            padding: 4px 10px;
+
+            border-radius: 5px;
+
+            cursor: pointer;
+
+            transition: all var(--transition);
+
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .copy-btn:hover {
+
+            background: rgba(30, 70, 140, 0.15);
+
+            color: var(--text-primary);
+        }
+
+        /* =====================================================
+           打字动画
+        ====================================================== */
+
+        .typing-indicator {
+
+            display: none;
+
+            margin-bottom: 28px;
+        }
+
+        /* 激活时显示 */
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dots {
+
+            display: flex;
+
+            gap: 4px;
+
+            padding: 10px 16px;
+        }
+
+        .typing-dots span {
+
+            width: 7px;
+            height: 7px;
+
+            background: var(--text-muted);
+
+            border-radius: 50%;
+
+            animation: dot-pulse 1.4s ease-in-out infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* 点动画 */
+        @keyframes dot-pulse {
+
+            0%, 80%, 100% {
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* =====================================================
+           输入区域
+        ====================================================== */
+
+        .input-area {
+
+            flex-shrink: 0;
+
+            border-top: 1px solid var(--border-subtle);
+
+            background: var(--bg-secondary);
+
+            padding: 16px 20px 20px;
+        }
+
+        /* 输入框容器 */
+        .input-box {
+
+            max-width: 780px;
+
+            margin: 0 auto;
+
+            background: var(--bg-input);
+
+            border: 1px solid var(--border-input);
+
+            border-radius: var(--radius);
+
+            display: flex;
+
+            align-items: flex-end;
+
+            padding: 4px;
+        }
+
+        /* 聚焦效果 */
+        .input-box:focus-within {
+
+            border-color: var(--accent);
+
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* textarea */
+        .input-box textarea {
+
+            flex: 1;
+
+            background: transparent;
+
+            border: none;
+
+            outline: none;
+
+            color: var(--text-primary);
+
+            font-size: 15px;
+
+            line-height: 1.5;
+
+            padding: 10px 14px;
+
+            resize: none;
+
+            max-height: 160px;
+
+            min-height: 22px;
+        }
+
+        /* placeholder */
+        .input-box textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* 发送按钮 */
+        .send-btn {
+
+            width: 36px;
+            height: 36px;
+
+            border-radius: 8px;
+
+            border: none;
+
+            background: var(--accent);
+
+            color: var(--text-on-accent);
+
+            cursor: pointer;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin: 2px;
+
+            transition: all var(--transition);
+        }
+
+        .send-btn:hover:not(:disabled) {
+
+            background: var(--accent-hover);
+
+            transform: scale(1.05);
+        }
+
+        /* 禁用状态 */
+        .send-btn:disabled {
+
+            background: var(--bg-tertiary);
+
+            color: var(--text-muted);
+
+            cursor: not-allowed;
+        }
+
+        /* 图片上传按钮 */
+        .img-btn {
+
+            width: 36px;
+            height: 36px;
+
+            border-radius: 8px;
+
+            border: none;
+
+            background: transparent;
+
+            color: var(--text-muted);
+
+            cursor: pointer;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin: 2px;
+            flex-shrink: 0;
+
+            transition: all var(--transition);
+        }
+
+        .img-btn:hover:not(:disabled) {
+
+            color: var(--accent);
+
+            background: var(--bg-tertiary);
+        }
+
+        .img-btn:disabled {
+
+            cursor: not-allowed;
+
+            opacity: 0.5;
+        }
+
+        .img-btn svg {
+
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 图片预览（发送前） */
+        .img-preview {
+
+            max-width: 780px;
+
+            margin: 0 auto 8px;
+
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .img-preview img {
+
+            max-width: 160px;
+            max-height: 120px;
+
+            border-radius: 8px;
+
+            border: 1px solid var(--border-input);
+
+            object-fit: cover;
+        }
+
+        .img-remove {
+
+            width: 22px;
+            height: 22px;
+
+            border-radius: 50%;
+
+            border: none;
+
+            background: #dc2626;
+
+            color: #fff;
+
+            font-size: 15px;
+            line-height: 1;
+
+            cursor: pointer;
+
+            flex-shrink: 0;
+        }
+
+        /* 消息中的图片 */
+        .msg-image {
+
+            max-width: 200px;
+            max-height: 200px;
+
+            border-radius: 8px;
+
+            display: block;
+
+            margin-bottom: 6px;
+        }
+
+        /* 输入提示 */
+        .input-hint {
+
+            max-width: 780px;
+
+            margin: 8px auto 0;
+
+            font-size: 11px;
+
+            color: var(--text-muted);
+
+            text-align: center;
+        }
+
+        /* =====================================================
+           欢迎页
+        ====================================================== */
+
+        .welcome {
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 60px 20px;
+
+            gap: 16px;
+
+            animation: fade-in 0.6s ease-out;
+        }
+
+        /* 渐入动画 */
+        @keyframes fade-in {
+
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* 欢迎图标 */
+        .welcome-icon {
+
+            width: 56px;
+            height: 56px;
+
+            background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    #b8863a
+            );
+
+            border-radius: 14px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 28px;
+
+            box-shadow: 0 8px 24px rgba(212, 168, 83, 0.2);
+        }
+
+        /* 欢迎标题 */
+        .welcome h2 {
+
+            font-size: 22px;
+
+            font-weight: 500;
+        }
+
+        /* 欢迎说明 */
+        .welcome p {
+
+            font-size: 14px;
+
+            color: var(--text-muted);
+
+            max-width: 360px;
+
+            text-align: center;
+
+            line-height: 1.6;
+        }
+
+        /* =====================================================
+           顶栏登录区域
+        ====================================================== */
+
+        .topbar-auth {
+            position: absolute;
+            left: 20px;
+
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            font-size: 12px;
+        }
+
+        /* 登录按钮 */
+        .login-btn {
+
+            padding: 5px 14px;
+
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+
+            background: transparent;
+            color: var(--accent);
+
+            font-size: 12px;
+            cursor: pointer;
+
+            transition: all var(--transition);
+
+            font-family: inherit;
+        }
+
+        .login-btn:hover {
+            background: var(--accent);
+            color: var(--text-on-accent);
+        }
+
+        /* 已登录：用户名 + 退出 */
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-chip .avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+
+            color: white;
+            font-size: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-chip .username {
+            color: var(--text-secondary);
+        }
+
+        .logout-btn {
+
+            padding: 4px 10px;
+
+            border: 1px solid var(--border-input);
+            border-radius: 6px;
+
+            background: transparent;
+            color: var(--text-muted);
+
+            font-size: 11px;
+            cursor: pointer;
+
+            transition: all var(--transition);
+
+            font-family: inherit;
+        }
+
+        .logout-btn:hover {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        /* =====================================================
+           登录对话框
+        ====================================================== */
+
+        .login-overlay {
+
+            position: fixed;
+            inset: 0;
+
+            background: rgba(30, 70, 140, 0.35);
+            backdrop-filter: blur(4px);
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            z-index: 100;
+        }
+
+        .login-overlay.active {
+            display: flex;
+        }
+
+        .login-dialog {
+
+            width: 340px;
+
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius);
+
+            padding: 28px;
+
+            box-shadow: var(--shadow-lg);
+
+            animation: msg-in 0.25s ease-out;
+        }
+
+        .login-dialog h3 {
+            font-size: 17px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .login-dialog .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .login-dialog .field {
+            margin-bottom: 14px;
+        }
+
+        .login-dialog label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .login-dialog input {
+
+            width: 100%;
+
+            background: var(--bg-input);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-sm);
+
+            color: var(--text-primary);
+            font-size: 14px;
+
+            padding: 10px 12px;
+
+            outline: none;
+
+            transition: all var(--transition);
+        }
+
+        .login-dialog input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .login-dialog .error {
+            display: none;
+            font-size: 12px;
+            color: #ef4444;
+            margin-bottom: 12px;
+        }
+
+        .login-dialog .error.active {
+            display: block;
+        }
+
+        .login-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .login-submit {
+
+            flex: 1;
+
+            padding: 10px;
+
+            border: none;
+            border-radius: var(--radius-sm);
+
+            background: var(--accent);
+            color: var(--bg-primary);
+
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+
+            transition: all var(--transition);
+
+            font-family: inherit;
+        }
+
+        .login-submit:hover {
+            background: var(--accent-hover);
+        }
+
+        .login-cancel {
+
+            padding: 10px 16px;
+
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-sm);
+
+            background: transparent;
+            color: var(--text-muted);
+
+            font-size: 14px;
+            cursor: pointer;
+
+            transition: all var(--transition);
+
+            font-family: inherit;
+        }
+
+        .login-cancel:hover {
+            color: var(--text-primary);
+        }
+
+        /* =====================================================
+           快捷入口（常见问题一键发送）
+        ====================================================== */
+
+        .quick-entries {
+            max-width: 780px;
+            margin: 0 auto 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-input);
+            border-radius: 999px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+
+        .quick-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(212, 168, 83, 0.08);
+        }
+
+        /* =====================================================
+           商品卡片（AI 推荐商品时富媒体展示）
+        ====================================================== */
+
+        .goods-card {
+            display: flex;
+            gap: 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin: 10px 0;
+            max-width: 420px;
+            transition: all var(--transition);
+        }
+
+        .goods-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(212, 168, 83, 0.1);
+        }
+
+        .goods-card img {
+            width: 96px;
+            height: 96px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg-tertiary);
+        }
+
+        .goods-card .goods-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .goods-card .goods-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .goods-card .goods-price {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .goods-card .goods-highlights {
+            font-size: 12px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .goods-card .goods-stock {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .goods-card .goods-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .goods-card .goods-btn {
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-input);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+
+        .goods-card .goods-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* =====================================================
+           消息直达徽章（订单号 / 工单号高亮）
+        ====================================================== */
+
+        .msg-content .id-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            margin: 0 2px;
+            background: rgba(212, 168, 83, 0.12);
+            border: 1px solid rgba(212, 168, 83, 0.35);
+            border-radius: 5px;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        /* =====================================================
+           响应式
+        ====================================================== */
+
+        @media (max-width: 600px) {
+
+            .messages-inner {
+                padding: 16px 12px;
+            }
+
+            .input-area {
+                padding: 12px;
+            }
+
+            .topbar-status {
+                display: none;
+            }
+
+            .topbar-auth {
+                left: 12px;
+            }
+
+            .quick-entries {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 4px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     顶栏
+========================================================== -->
+<div class="topbar">
+
+    <!-- 登录区域（左侧） -->
+    <div class="topbar-auth" id="authArea">
+
+        <!-- 未登录：显示登录按钮 -->
+        <button class="login-btn" id="loginBtn">登录</button>
+    </div>
+
+    <!-- Logo -->
+    <div class="topbar-logo">🛍️</div>
+
+    <!-- 标题 -->
+    <span class="topbar-title">NanoClaw 电商客服</span>
+
+    <!-- 在线状态 -->
+    <div class="topbar-status" id="statusBar">
+
+        <!-- 状态点 -->
+        <span class="dot" id="statusDot"></span>
+
+        <!-- 状态文字 -->
+        <span id="statusText">连接中</span>
+    </div>
+</div>
+
+<!-- =========================================================
+     登录对话框
+========================================================== -->
+<div class="login-overlay" id="loginOverlay">
+
+    <div class="login-dialog">
+
+        <h3>账号登录</h3>
+
+        <p class="sub">
+            登录后可查询订单、物流、办理售后。<br>
+            演示账号：han / 123456 或 li / 123456
+        </p>
+
+        <div class="field">
+            <label for="loginUsername">用户名</label>
+            <input type="text"
+                   id="loginUsername"
+                   placeholder="han"
+                   autocomplete="username">
+        </div>
+
+        <div class="field">
+            <label for="loginPassword">密码</label>
+            <input type="password"
+                   id="loginPassword"
+                   placeholder="123456"
+                   autocomplete="current-password">
+        </div>
+
+        <div class="error" id="loginError"></div>
+
+        <div class="login-actions">
+
+            <button class="login-submit" id="loginSubmit">登 录</button>
+
+            <button class="login-cancel" id="loginCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     消息区域
+========================================================== -->
+<div class="messages-wrapper" id="messagesWrapper">
+
+    <div class="messages-inner" id="messages">
+
+        <!-- 欢迎页 -->
+        <div class="welcome" id="welcome">
+
+            <div class="welcome-icon">🛍️</div>
+
+            <h2>智能客服小纳</h2>
+
+            <p>
+                可以帮您推荐商品、查询订单物流、办理退换售后、
+                记住您的偏好。游客可直接逛商品，
+                <a href="#" id="welcomeLoginLink" style="color: var(--accent);">登录</a>
+                后可使用完整服务（演示账号：han / 123456）。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     打字动画
+========================================================== -->
+<div class="typing-indicator" id="typing">
+
+    <div class="messages-inner" style="padding: 0 20px;">
+
+        <div class="msg-row">
+
+            <div class="msg-avatar bot">🛍️</div>
+
+            <div class="msg-body">
+
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <!-- 流式：工具进度话术（如"🔍 正在搜索在售商品…"） -->
+                <div class="typing-status" id="typingStatus"
+                     style="display:none; margin-top:6px; font-size:13px; color:#8a93a6;"></div>
+
+                <!-- 流式：AI 回复增量文本（边生成边显示） -->
+                <div class="typing-stream" id="typingStream"
+                     style="display:none; margin-top:6px; font-size:14px; line-height:1.6; color:#2c3345; white-space:pre-wrap;"></div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     输入区域
+========================================================== -->
+<div class="input-area">
+
+    <!-- 快捷入口：常见问题一键发送 -->
+    <div class="quick-entries" id="quickEntries">
+        <button class="quick-chip" data-msg="我的包裹到哪了">📦 查物流</button>
+        <button class="quick-chip" data-msg="我的订单">🧾 我的订单</button>
+        <button class="quick-chip" data-msg="我想退货">↩️ 退换货</button>
+        <button class="quick-chip" data-link="/mall">👟 逛商品</button>
+        <button class="quick-chip" data-msg="转人工">👤 转人工</button>
+    </div>
+
+    <!-- 图片预览（选择图片后显示） -->
+    <div class="img-preview" id="imgPreview" style="display:none;">
+        <img id="imgPreviewImg" alt="图片预览">
+        <button class="img-remove" id="imgRemove" type="button" title="移除图片">×</button>
+    </div>
+
+    <div class="input-box" id="inputBox">
+
+        <!-- 图片上传按钮 -->
+        <button class="img-btn" id="imgBtn" type="button" title="上传图片">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+            </svg>
+        </button>
+        <input type="file" id="imgInput" accept="image/*" style="display:none;">
+
+        <!-- 文本输入框 -->
+        <textarea id="input"
+                  placeholder="试试：推荐 300 左右的跑鞋..."
+                  rows="1"
+                  disabled></textarea>
+
+        <!-- 发送按钮 -->
+        <button class="send-btn"
+                id="sendBtn"
+                disabled>
+
+            <!-- SVG 图标 -->
+            <svg viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2.5"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+
+                <path d="M22 2L11 13"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2"/>
+
+            </svg>
+        </button>
+    </div>
+
+    <!-- 输入提示 -->
+    <div class="input-hint">
+        Enter 发送 · Shift+Enter 换行
+    </div>
+</div>
+
+<!-- =========================================================
+     JavaScript
+========================================================== -->
+<script>
+
+    /* ======================================================
+       Markdown 配置
+    ======================================================= */
+
+    marked.setOptions({
+
+        // 代码高亮
+        highlight: function(code, lang) {
+
+            // 如果指定了语言
+            if (lang && hljs.getLanguage(lang)) {
+
+                return hljs.highlight(code, {
+                    language: lang
+                }).value;
+            }
+
+            // 自动识别语言
+            return hljs.highlightAuto(code).value;
+        },
+
+        // 支持换行
+        breaks: true,
+
+        // GitHub Markdown
+        gfm: true,
+    });
+
+    /* ======================================================
+       DOM 元素获取
+    ======================================================= */
+
+    const messagesEl = document.getElementById('messages');
+
+    const wrapperEl = document.getElementById('messagesWrapper');
+
+    const inputEl = document.getElementById('input');
+
+    const sendBtn = document.getElementById('sendBtn');
+
+    const imgBtn = document.getElementById('imgBtn');
+    const imgInput = document.getElementById('imgInput');
+    const imgPreview = document.getElementById('imgPreview');
+    const imgPreviewImg = document.getElementById('imgPreviewImg');
+    const imgRemove = document.getElementById('imgRemove');
+
+    const statusDot = document.getElementById('statusDot');
+
+    const statusText = document.getElementById('statusText');
+
+    const typingEl = document.getElementById('typing');
+
+    const welcomeEl = document.getElementById('welcome');
+
+    // 登录相关元素
+    const authAreaEl = document.getElementById('authArea');
+
+    const loginBtnEl = document.getElementById('loginBtn');
+
+    const loginOverlayEl = document.getElementById('loginOverlay');
+
+    const loginUsernameEl = document.getElementById('loginUsername');
+
+    const loginPasswordEl = document.getElementById('loginPassword');
+
+    const loginErrorEl = document.getElementById('loginError');
+
+    const loginSubmitEl = document.getElementById('loginSubmit');
+
+    const loginCancelEl = document.getElementById('loginCancel');
+
+    const welcomeLoginLinkEl = document.getElementById('welcomeLoginLink');
+
+    /* ======================================================
+       WebSocket 配置
+    ======================================================= */
+
+    // 自动拼接 websocket 地址
+    const wsUrl = `ws://${location.host}/ws`;
+
+    // websocket 对象
+    let ws = null;
+
+    // 是否正在等待回复
+    let isWaiting = false;
+
+    // 是否处于人工客服接管模式（消息由人工客服处理，不显示 AI 思考动画）
+    let humanMode = false;
+
+    // 当前登录用户（null 为游客）
+    let currentUser = null;
+
+    // 待发送的图片（base64 data URL，null 表示无图）
+    let pendingImage = null;
+
+    /* ======================================================
+       登录 UI
+    ======================================================= */
+
+    // 打开登录对话框
+    function openLoginDialog() {
+
+        loginOverlayEl.classList.add('active');
+
+        loginErrorEl.classList.remove('active');
+        loginErrorEl.textContent = '';
+
+        // 自动聚焦用户名
+        loginUsernameEl.focus();
+    }
+
+    // 关闭登录对话框
+    function closeLoginDialog() {
+
+        loginOverlayEl.classList.remove('active');
+
+        // 清空密码
+        loginPasswordEl.value = '';
+    }
+
+    // 更新顶栏登录区域
+    function renderAuthArea() {
+
+        if (currentUser) {
+
+            // 已登录：头像 + 用户名 + 退出
+            authAreaEl.innerHTML = `
+                <div class="user-chip">
+                    <span class="avatar">${escapeHtml(currentUser.username[0].toUpperCase())}</span>
+                    <span class="username">${escapeHtml(currentUser.name || currentUser.username)}</span>
+                    <button class="logout-btn" id="logoutBtn">退出</button>
+                </div>
+            `;
+
+            // 绑定登出事件
+            document.getElementById('logoutBtn').onclick = () => {
+                ws.send(JSON.stringify({type: 'logout'}));
+            };
+
+        } else {
+
+            // 未登录：登录按钮
+            authAreaEl.innerHTML = `<button class="login-btn" id="loginBtn">登录</button>`;
+            document.getElementById('loginBtn').onclick = openLoginDialog;
+        }
+    }
+
+    // 提交登录
+    function submitLogin() {
+
+        const username = loginUsernameEl.value.trim();
+        const password = loginPasswordEl.value;
+
+        if (!username || !password) {
+            loginErrorEl.textContent = '请输入用户名和密码';
+            loginErrorEl.classList.add('active');
+            return;
+        }
+
+        // 发送登录控制消息
+        ws.send(JSON.stringify({
+            type: 'login',
+            username: username,
+            password: password,
+        }));
+    }
+
+    // 处理后端控制消息
+    function handleControl(payload) {
+
+        switch (payload.type) {
+
+            case 'login_ok':
+
+                currentUser = {
+                    username: payload.username,
+                    name: payload.name,
+                };
+
+                // 保存服务端签发的 JWT（生产落地 P0-1.2：后续 REST API 鉴权用）
+                if (payload.token) {
+                    try { localStorage.setItem('nanoclaw_token', payload.token); } catch (e) {}
+                }
+
+                // 同步保存用户名/昵称：商城页（/mall）据此显示登录态，
+                // 实现「商城登录 → 客服对话」登录态跨页共享
+                try {
+                    localStorage.setItem('nanoclaw_username', payload.username);
+                    localStorage.setItem('nanoclaw_name', payload.name || payload.username);
+                } catch (e) {}
+
+                renderAuthArea();
+                closeLoginDialog();
+
+                // 系统提示
+                appendBotMessage(
+                    `✅ 登录成功，欢迎回来，**${payload.name || payload.username}**！\n\n` +
+                    `已为您恢复账号会话与偏好记忆。现在可以试试：\n` +
+                    `- 「我的订单」\n- 「我的包裹到哪了」\n- 「我的档案」`
+                );
+                break;
+
+            case 'login_fail':
+
+                loginErrorEl.textContent = payload.message || '账号或密码错误';
+                loginErrorEl.classList.add('active');
+                break;
+
+            case 'logout_ok':
+
+                currentUser = null;
+                renderAuthArea();
+                appendBotMessage('已退出登录，当前为游客模式。');
+
+                // 清除共享登录态（商城页 /mall 顶栏随之回到未登录状态）
+                try {
+                    localStorage.removeItem('nanoclaw_token');
+                    localStorage.removeItem('nanoclaw_username');
+                    localStorage.removeItem('nanoclaw_name');
+                } catch (e) {}
+                break;
+
+            // 人工客服接管状态切换（转人工进入 / 超时退出）
+            case 'human_takeover':
+
+                humanMode = !!payload.active;
+
+                if (humanMode) {
+                    // 人工模式下消息由人工客服处理：不显示 AI 思考动画
+                    isWaiting = false;
+                    sendBtn.disabled = false;
+                    typingEl.classList.remove('active');
+                }
+                break;
+
+            // ===== AI 流式输出（工具进度 / 文本增量 / 完成） =====
+
+            // 工具进度：在等待区显示"🔍 正在搜索在售商品…"
+            case 'agent_tool':
+
+                typingEl.classList.add('active');
+                const statusEl = document.getElementById('typingStatus');
+                statusEl.textContent = payload.text || '';
+                statusEl.style.display = 'block';
+                scrollToBottom();
+                break;
+
+            // 文本增量：边生成边显示（纯文本快速呈现）
+            case 'agent_delta': {
+
+                typingEl.classList.add('active');
+                const statusEl2 = document.getElementById('typingStatus');
+                statusEl2.style.display = 'none';
+
+                const streamEl = document.getElementById('typingStream');
+                streamEl.style.display = 'block';
+                streamEl.textContent += payload.text || '';
+                scrollToBottom();
+                break;
+            }
+
+            // 工具轮作废：清空已显示的临时内容（AI 决定先调工具）
+            case 'agent_reset': {
+
+                const streamEl2 = document.getElementById('typingStream');
+                streamEl2.textContent = '';
+                streamEl2.style.display = 'none';
+                break;
+            }
+
+            // 回复完成：用累积的完整文本固化为正式富媒体消息
+            case 'agent_done': {
+
+                const streamEl3 = document.getElementById('typingStream');
+                const fullText = streamEl3.textContent;
+                streamEl3.textContent = '';
+                streamEl3.style.display = 'none';
+
+                const statusEl3 = document.getElementById('typingStatus');
+                statusEl3.textContent = '';
+                statusEl3.style.display = 'none';
+
+                typingEl.classList.remove('active');
+                isWaiting = false;
+                sendBtn.disabled = false;
+
+                if (fullText) {
+                    appendBotMessage(fullText);
+                }
+                break;
+            }
+        }
+    }
+
+    // 登录按钮 / 对话框事件
+    loginBtnEl.addEventListener('click', openLoginDialog);
+    loginCancelEl.addEventListener('click', closeLoginDialog);
+    loginSubmitEl.addEventListener('click', submitLogin);
+    welcomeLoginLinkEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        openLoginDialog();
+    });
+
+    // Enter 提交登录
+    loginPasswordEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            submitLogin();
+        }
+    });
+    loginUsernameEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            loginPasswordEl.focus();
+        }
+    });
+
+    // 点击遮罩关闭
+    loginOverlayEl.addEventListener('click', (e) => {
+        if (e.target === loginOverlayEl) {
+            closeLoginDialog();
+        }
+    });
+
+    /* ======================================================
+       设置连接状态
+    ======================================================= */
+    function setConnected(connected) {
+
+        // 输入框启用/禁用
+        inputEl.disabled = !connected;
+
+        // 按钮启用/禁用
+        sendBtn.disabled = !connected || isWaiting;
+
+        // 状态文本
+        statusText.textContent = connected
+            ? '在线'
+            : '已断开';
+
+        // 状态点颜色
+        statusDot.className = `dot ${
+            connected ? '' : 'offline'
+        }`;
+    }
+
+    /* ======================================================
+       建立 WebSocket 连接
+    ======================================================= */
+    function connect() {
+
+        // 创建 websocket
+        ws = new WebSocket(wsUrl);
+
+        /* --------------------------------------------------
+           连接成功
+        --------------------------------------------------- */
+        ws.onopen = () => {
+
+            setConnected(true);
+
+            // 自动聚焦输入框
+            inputEl.focus();
+
+            // 商城页（/mall）登录态带过来：有已保存的 JWT 就凭 token
+            // 自动恢复登录（服务端校验签名与有效期），无需再次输入密码
+            try {
+                const savedToken = localStorage.getItem('nanoclaw_token');
+                if (savedToken) {
+                    ws.send(JSON.stringify({type: 'login', token: savedToken}));
+                }
+            } catch (e) {}
+        };
+
+        /* --------------------------------------------------
+           收到消息
+        --------------------------------------------------- */
+        ws.onmessage = (e) => {
+
+            // 先尝试解析控制消息（登录/登出）
+            let control = null;
+            if (e.data && e.data.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(e.data);
+                    if (parsed && typeof parsed.type === 'string') {
+                        control = parsed;
+                    }
+                } catch (_) {
+                    // 普通文本消息，忽略
+                }
+            }
+
+            // 控制消息走登录逻辑
+            if (control) {
+                handleControl(control);
+                return;
+            }
+
+            // 不再等待
+            isWaiting = false;
+
+            // 启用按钮
+            sendBtn.disabled = false;
+
+            // 隐藏打字动画
+            typingEl.classList.remove('active');
+
+            // 添加 Bot 消息
+            appendBotMessage(e.data);
+        };
+
+        /* --------------------------------------------------
+           连接关闭
+        --------------------------------------------------- */
+        ws.onclose = () => {
+
+            setConnected(false);
+
+            isWaiting = false;
+
+            typingEl.classList.remove('active');
+
+            // 连接已断，登录状态随之失效（后端会话按连接隔离）
+            if (currentUser) {
+                currentUser = null;
+                renderAuthArea();
+            }
+
+            // 自动重连
+            setTimeout(connect, 3000);
+        };
+
+        /* --------------------------------------------------
+           连接错误
+        --------------------------------------------------- */
+        ws.onerror = () => {
+            setConnected(false);
+        };
+    }
+
+    /* ======================================================
+       隐藏欢迎页
+    ======================================================= */
+    function hideWelcome() {
+
+        if (welcomeEl) {
+            welcomeEl.style.display = 'none';
+        }
+    }
+
+    /* ======================================================
+       滚动到底部
+    ======================================================= */
+    function scrollToBottom() {
+
+        requestAnimationFrame(() => {
+
+            wrapperEl.scrollTop =
+                wrapperEl.scrollHeight;
+        });
+    }
+
+    /* ======================================================
+       添加用户消息
+    ======================================================= */
+    function appendUserMessage(text, image) {
+
+        hideWelcome();
+
+        // 创建消息节点
+        const row = document.createElement('div');
+
+        row.className = 'msg-row';
+
+        const imageHtml = image
+            ? `<img src="${image}" class="msg-image" alt="顾客上传图片">`
+            : '';
+        const textHtml = text
+            ? `<div class="msg-content user-text">${escapeHtml(text)}</div>`
+            : '';
+
+        row.innerHTML = `
+            <div class="msg-avatar user">你</div>
+
+            <div class="msg-body">
+
+                ${imageHtml}
+                ${textHtml}
+
+            </div>
+        `;
+
+        // 添加到页面
+        messagesEl.appendChild(row);
+
+        // 自动滚动
+        scrollToBottom();
+    }
+
+    /* ======================================================
+       快捷入口：data-link 跳转页面（逛商品→商城），data-msg 一键发送预设消息
+    ======================================================= */
+    document.querySelectorAll('.quick-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            if (chip.dataset.link) {
+                // 新窗口打开，保留当前对话与登录状态
+                window.open(chip.dataset.link, '_blank');
+                return;
+            }
+            const msg = chip.dataset.msg;
+            if (msg && !isWaiting && ws && ws.readyState === WebSocket.OPEN) {
+                sendText(msg);
+            }
+        });
+    });
+
+    /* ======================================================
+       商品卡片：SKU 前缀 → 商品图（按品类生成）
+    ======================================================= */
+    const IMG_API = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image';
+
+    const SKU_IMAGE_PROMPTS = {
+        RUN: 'modern lightweight running shoe product photo, knit upper, studio lighting, clean background',
+        CAS: 'casual canvas sneakers product photo, studio lighting, clean background',
+        TSHIRT: 'sports quick dry t-shirt flat product photo, studio lighting, clean background',
+        JACKET: 'lightweight windbreaker jacket product photo, studio lighting, clean background',
+        PANTS: 'athletic stretch pants product photo, studio lighting, clean background',
+        HOODIE: 'hoodie sweatshirt flat product photo, studio lighting, clean background',
+        EAR: 'wireless noise cancelling earbuds product photo, studio lighting, clean background',
+        WATCH: 'smartwatch product photo, studio lighting, clean background',
+        BAG: 'commuter backpack product photo, studio lighting, clean background',
+    };
+
+    function skuImage(sku, name) {
+        // 品类前缀命中时用精细英文 prompt；否则用商品名兜底生成对应图片，
+        // 避免 SJ 新商品（手机/电子表/水壶等无前缀 SKU）误显示成双肩包图
+        const prefix = Object.keys(SKU_IMAGE_PROMPTS).find(p => sku.startsWith(p));
+        const prompt = prefix
+            ? SKU_IMAGE_PROMPTS[prefix]
+            : `${name || '商品'} 商品实拍图, 纯色背景, 影棚灯光`;
+        return IMG_API + '?prompt=' + encodeURIComponent(prompt) + '&image_size=square';
+    }
+
+    // 商品行格式（search_goods 输出）："1. 名称（SKU: XXX）¥价格 — 卖点 | 库存N"
+    const GOODS_LINE_RE = /^(?:\d+\.\s*)?(.+?)（SKU:\s*([A-Z0-9-]+)）¥([\d.]+)(?:\s+—\s*(.+?))?(?:\s*\|\s*库存(\d+))?\s*$/;
+
+    /**
+     * 渲染富媒体 Bot 消息：
+     * 1. 提取商品行 → 占位符 → Markdown 渲染 → 占位符替换为商品卡片
+     * 2. 订单号（SOxxx）/ 工单号（TKxxx）渲染为高亮徽章
+     */
+    function renderRichBotMessage(row, mdText) {
+
+        // ---- 商品行提取 ----
+        const goods = [];
+        const lines = mdText.split('\n').map(line => {
+            const m = line.trim().match(GOODS_LINE_RE);
+            if (m) {
+                goods.push({
+                    name: m[1], sku: m[2], price: m[3],
+                    highlights: m[4] || '', stock: m[5] || '',
+                });
+                return `[GOODS-CARD-${goods.length - 1}]`;
+            }
+            return line;
+        });
+
+        // Markdown 渲染
+        const contentEl = row.querySelector('.msg-content');
+        contentEl.innerHTML = marked.parse(lines.join('\n'));
+
+        // 机器人推荐的商品等链接一律在新窗口打开：
+        // 对话页不被跳走，WebSocket 连接、聊天上下文与登录态保持原状，
+        // 返回时无需重新登录（target/rel 会随 innerHTML 序列化保留）
+        contentEl.querySelectorAll('a').forEach(a => {
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+        });
+
+        // ---- 占位符替换为商品卡片 ----
+        goods.forEach((g, i) => {
+            const holder = Array.from(contentEl.querySelectorAll('p, li'))
+                .find(el => el.textContent.trim() === `[GOODS-CARD-${i}]`);
+            if (!holder) return;
+
+            const card = document.createElement('div');
+            card.className = 'goods-card';
+            card.innerHTML = `
+                <img src="${skuImage(g.sku, g.name)}" alt="${escapeHtml(g.name)}" loading="lazy">
+                <div class="goods-info">
+                    <div class="goods-name">${escapeHtml(g.name)}</div>
+                    <div class="goods-price">¥${g.price}</div>
+                    ${g.highlights ? `<div class="goods-highlights">${escapeHtml(g.highlights)}</div>` : ''}
+                    ${g.stock !== '' ? `<div class="goods-stock">库存 ${g.stock} 件</div>` : ''}
+                    <div class="goods-actions">
+                        <button class="goods-btn" data-ask="介绍一下 ${g.sku} ${g.name}">看详情</button>
+                        <button class="goods-btn" data-ask="${escapeHtml(g.name)} 有哪些尺码和颜色可选？">问尺码</button>
+                    </div>
+                </div>
+            `;
+            holder.replaceWith(card);
+        });
+
+        // 卡片按钮：点击即向 AI 提问
+        contentEl.querySelectorAll('.goods-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!isWaiting && ws && ws.readyState === WebSocket.OPEN) {
+                    sendText(btn.dataset.ask);
+                }
+            });
+        });
+
+        // ---- 订单号 / 工单号徽章 ----
+        contentEl.innerHTML = contentEl.innerHTML.replace(
+            /\b(SO\d{6,}|TK\d{8,})\b/g,
+            '<span class="id-badge">$1</span>'
+        );
+    }
+
+    /* ======================================================
+       添加 Bot 消息
+    ======================================================= */
+    function appendBotMessage(mdText) {
+
+        hideWelcome();
+
+        // 人工客服消息：用专属头像与名字，避免顾客误以为是 AI 在回复
+        const isHuman = String(mdText || '').startsWith('👤【人工客服】');
+        const avatarCls = isHuman ? 'msg-avatar human' : 'msg-avatar bot';
+        const avatarIcon = isHuman ? '👤' : '🛍️';
+        const body = isHuman
+            ? String(mdText).replace(/^👤【人工客服】/, '')
+            : mdText;
+        const nameHtml = isHuman ? '<div class="msg-name">人工客服</div>' : '';
+
+        // 创建消息节点
+        const row = document.createElement('div');
+
+        row.className = 'msg-row';
+
+        row.innerHTML = `
+            <div class="${avatarCls}">${avatarIcon}</div>
+
+            <div class="msg-body">
+                ${nameHtml}
+                <div class="msg-content">
+                </div>
+
+            </div>
+        `;
+
+        // 富媒体渲染（商品卡片 + 徽章 + Markdown）
+        renderRichBotMessage(row, body);
+
+        // 添加到页面
+        messagesEl.appendChild(row);
+
+        /* --------------------------------------------------
+           给所有代码块添加复制按钮
+        --------------------------------------------------- */
+        row.querySelectorAll('pre').forEach(pre => {
+
+            // 创建 wrapper
+            const wrapper = document.createElement('div');
+
+            wrapper.className = 'code-block-wrapper';
+
+            // 替换结构
+            pre.parentNode.insertBefore(wrapper, pre);
+
+            wrapper.appendChild(pre);
+
+            // 创建按钮
+            const btn = document.createElement('button');
+
+            btn.className = 'copy-btn';
+
+            btn.textContent = '复制';
+
+            // 点击复制
+            btn.onclick = () => {
+
+                const code =
+                    pre.querySelector('code')?.textContent
+                    || pre.textContent;
+
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+
+                        btn.textContent = '已复制 ✓';
+
+                        setTimeout(() => {
+                            btn.textContent = '复制';
+                        }, 2000);
+                    });
+            };
+
+            wrapper.appendChild(btn);
+        });
+
+        // 自动滚动
+        scrollToBottom();
+    }
+
+    /* ======================================================
+       HTML 转义
+       防止 XSS
+    ======================================================= */
+    function escapeHtml(text) {
+
+        const div = document.createElement('div');
+
+        div.textContent = text;
+
+        return div.innerHTML;
+    }
+
+    /* ======================================================
+       发送消息（从输入框读取）
+    ======================================================= */
+    function sendMessage() {
+
+        // 获取输入内容
+        const text = inputEl.value.trim();
+
+        // 有图片或文本才发送；空消息 或 正在等待 时不发送
+        if ((!text && !pendingImage) || isWaiting) {
+            return;
+        }
+
+        // 清空输入框
+        inputEl.value = '';
+
+        // 重置高度
+        autoResize();
+
+        // 发送（带图片）
+        sendText(text, pendingImage);
+
+        // 清空待发送图片
+        clearPendingImage();
+    }
+
+    /* ======================================================
+       发送指定文本（快捷入口 / 商品卡片按钮复用）
+    ======================================================= */
+    function sendText(text, image) {
+
+        // 正在等待回复时不重复发送
+        if (isWaiting) {
+            return;
+        }
+
+        // 有图片发 JSON 消息，否则发纯文本
+        if (image) {
+            ws.send(JSON.stringify({
+                type: 'image_message',
+                image: image,
+                text: text || '',
+            }));
+        } else {
+            ws.send(text);
+        }
+
+        // 重置上一轮流式残留（进度话术 / 增量文本）
+        document.getElementById('typingStatus').textContent = '';
+        document.getElementById('typingStatus').style.display = 'none';
+        document.getElementById('typingStream').textContent = '';
+        document.getElementById('typingStream').style.display = 'none';
+
+        // 页面显示用户消息（含图片）
+        appendUserMessage(text, image);
+
+        // 人工客服模式下消息由人工客服处理：
+        // 不进入等待状态、不显示 AI 思考动画（图标 + 三个点）
+        if (humanMode) {
+            scrollToBottom();
+            return;
+        }
+
+        // 显示等待状态
+        isWaiting = true;
+
+        sendBtn.disabled = true;
+
+        // 显示打字动画
+        typingEl.classList.add('active');
+
+        scrollToBottom();
+    }
+
+    /* ======================================================
+       输入框自动高度
+    ======================================================= */
+    function autoResize() {
+
+        // 先恢复自动高度
+        inputEl.style.height = 'auto';
+
+        // 根据内容自动增长
+        inputEl.style.height =
+            Math.min(inputEl.scrollHeight, 160)
+            + 'px';
+    }
+
+    /* ======================================================
+       图片上传：选择 → 压缩转 base64 → 预览
+    ======================================================= */
+
+    // 点击图片按钮触发文件选择
+    imgBtn.addEventListener('click', () => {
+        if (isWaiting) return;
+        imgInput.click();
+    });
+
+    // 选择图片后：压缩并转 base64
+    imgInput.addEventListener('change', () => {
+        const file = imgInput.files && imgInput.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            imgInput.value = '';
+            return;
+        }
+        compressImage(file, (dataUrl) => {
+            pendingImage = dataUrl;
+            imgPreviewImg.src = dataUrl;
+            imgPreview.style.display = 'flex';
+        });
+        imgInput.value = '';  // 允许重复选择同一文件
+    });
+
+    // 移除待发送图片
+    imgRemove.addEventListener('click', () => {
+        clearPendingImage();
+    });
+
+    // 清空待发送图片（发送后 / 移除时）
+    function clearPendingImage() {
+        pendingImage = null;
+        imgPreview.style.display = 'none';
+        imgPreviewImg.src = '';
+    }
+
+    // 压缩图片到合适尺寸，转 base64（避免 WebSocket 消息过大）
+    function compressImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxSide = 800;  // 最大边长 800px
+                let w = img.width;
+                let h = img.height;
+                if (w > maxSide || h > maxSide) {
+                    const scale = Math.min(maxSide / w, maxSide / h);
+                    w = Math.round(w * scale);
+                    h = Math.round(h * scale);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                callback(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /* ======================================================
+       按钮点击发送
+    ======================================================= */
+    sendBtn.addEventListener('click', sendMessage);
+
+    /* ======================================================
+       Enter 发送
+       Shift + Enter 换行
+    ======================================================= */
+    inputEl.addEventListener('keydown', (e) => {
+
+        // Enter 且不是 Shift+Enter
+        if (e.key === 'Enter' && !e.shiftKey) {
+
+            e.preventDefault();
+
+            sendMessage();
+        }
+    });
+
+    /* ======================================================
+       输入变化自动调整高度
+    ======================================================= */
+    inputEl.addEventListener('input', autoResize);
+
+    /* ======================================================
+       页面启动
+    ======================================================= */
+
+    // 建立 websocket 连接
+    connect();
+
+</script>
+
+</body>
+</html>

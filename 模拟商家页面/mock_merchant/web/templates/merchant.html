@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模拟商家后台</title>
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --line:#e5e9f2; --txt:#1f2937; --sub:#6b7280;
+  --pri:#2563eb; --pri-d:#1d4ed8; --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+  --radius:10px; --shadow:0 1px 3px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.6 "Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--txt)}
+button{cursor:pointer;font:inherit;border:none;border-radius:6px;padding:6px 14px;background:var(--pri);color:#fff}
+button:hover{background:var(--pri-d)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
+button.ghost:hover{background:#f3f4f6}
+button.ok{background:var(--ok)} button.ok:hover{background:#15803d}
+button.warn{background:var(--warn)} button.warn:hover{background:#b45309}
+button.bad{background:var(--bad)} button.bad:hover{background:#b91c1c}
+button.sm{padding:3px 10px;font-size:12px}
+input,select,textarea{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--pri)}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+th{background:#f8fafc;color:var(--sub);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fbff}
+.badge{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;white-space:nowrap}
+.b-blue{background:#dbeafe;color:#1d4ed8} .b-green{background:#dcfce7;color:#15803d}
+.b-gray{background:#e5e7eb;color:#374151} .b-orange{background:#ffedd5;color:#c2410c}
+.b-red{background:#fee2e2;color:#b91c1c} .b-purple{background:#ede9fe;color:#6d28d9}
+.b-cyan{background:#cffafe;color:#0e7490} .b-pink{background:#fce7f3;color:#be185d}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.grid{display:grid;gap:14px}
+.muted{color:var(--sub);font-size:12px}
+.mono{font-family:Consolas,monospace;font-size:12px}
+
+/* 登录 */
+#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb 55%,#3b82f6)}
+#loginView .card{width:380px;padding:32px}
+#loginView h1{font-size:20px;margin-bottom:4px}
+#loginView .sub{margin-bottom:20px}
+#loginView label{display:block;margin:12px 0 4px;color:var(--sub)}
+#loginView input{width:100%}
+#loginView button{width:100%;margin-top:20px;padding:10px}
+.acct{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.acct button{width:auto;margin:0;padding:4px 10px;font-size:12px;background:#eef2ff;color:var(--pri-d);border:1px solid #c7d2fe}
+.acct button:hover{background:#e0e7ff}
+
+/* 布局 */
+#appView{display:none}
+.topbar{height:54px;background:#0f2557;color:#fff;display:flex;align-items:center;padding:0 20px;gap:16px;position:sticky;top:0;z-index:10}
+.topbar .logo{font-weight:700;font-size:16px}
+.topbar .who{margin-left:auto;font-size:13px;display:flex;align-items:center;gap:12px}
+.topbar button{background:rgba(255,255,255,.15);padding:5px 12px}
+.topbar button:hover{background:rgba(255,255,255,.3)}
+.wrap{display:flex;min-height:calc(100vh - 54px)}
+.sidenav{width:170px;background:#fff;border-right:1px solid var(--line);padding:12px 8px;flex-shrink:0}
+.sidenav a{display:block;padding:8px 14px;border-radius:8px;color:var(--txt);text-decoration:none;margin-bottom:2px;font-size:14px}
+.sidenav a:hover{background:#eef2ff;color:var(--pri-d)}
+.sidenav a.active{background:var(--pri);color:#fff}
+.main{flex:1;padding:18px 22px;min-width:0}
+.page-title{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.page-title h2{font-size:18px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar .spacer{flex:1}
+.pager{display:flex;gap:8px;align-items:center;margin-top:12px;justify-content:flex-end}
+
+/* 指标卡 */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.kpi{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
+.kpi .k{color:var(--sub);font-size:12px}
+.kpi .v{font-size:22px;font-weight:700;margin-top:2px}
+.kpi .v.warn{color:var(--warn)} .kpi .v.bad{color:var(--bad)} .kpi .v.ok{color:var(--ok)}
+.cols-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1000px){.cols-2{grid-template-columns:1fr}}
+.bar-row{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:13px}
+.bar-row .lbl{width:120px;text-align:right;color:var(--sub);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .bar{height:14px;background:var(--pri);border-radius:4px;min-width:2px}
+.bar-row .num{color:var(--sub)}
+
+/* 弹窗 */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto}
+.modal.show{display:flex}
+.modal .card{width:720px;max-width:100%;max-height:calc(100vh - 80px);overflow:auto}
+.modal .card.wide{width:900px}
+.modal h3{margin-bottom:12px;font-size:16px}
+.modal .close{float:right;background:#f3f4f6;color:var(--sub);padding:2px 10px}
+.dl{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px;margin:8px 0}
+.dl dt{color:var(--sub)}
+.dl dd{word-break:break-all}
+.timeline{margin:8px 0;padding-left:18px;border-left:2px solid var(--line)}
+.timeline .tl{position:relative;padding:2px 0 12px;font-size:13px}
+.timeline .tl::before{content:"";position:absolute;left:-23px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--pri)}
+.timeline .tl .t{color:var(--sub);font-size:12px}
+.items-table td{font-size:12px}
+.toast{position:fixed;top:66px;right:20px;z-index:99;padding:10px 18px;border-radius:8px;color:#fff;
+  box-shadow:0 4px 12px rgba(0,0,0,.2);display:none;max-width:420px;font-size:13px}
+.toast.show{display:block}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.form-grid .full{grid-column:1/-1}
+.form-grid label{display:block;color:var(--sub);font-size:12px;margin-bottom:3px}
+.form-grid input,.form-grid select,.form-grid textarea{width:100%}
+.switch-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.switch-row:last-child{border-bottom:none}
+.switch-row .desc{color:var(--sub);font-size:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{background:#fff;color:var(--txt);border:1px solid var(--line)}
+.tabs button.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.empty{padding:40px;text-align:center;color:var(--sub)}
+.section{margin-top:16px}
+.section h4{margin-bottom:8px;font-size:14px;color:var(--sub)}
+</style>
+</head>
+<body>
+
+<!-- 登录视图 -->
+<div id="loginView">
+  <div class="card">
+    <h1>模拟商家后台</h1>
+    <div class="sub muted">Mock Merchant Console · 端口 8090</div>
+    <label>账号</label><input id="loginUser" placeholder="merchant_admin" value="merchant_admin">
+    <label>密码</label><input id="loginPass" type="password" value="123456">
+    <button onclick="doLogin()">登 录</button>
+    <div class="acct">
+      <button onclick="fillAcct('merchant_admin')">管理员</button>
+      <button onclick="fillAcct('operator')">运营</button>
+      <button onclick="fillAcct('after_sales')">售后客服</button>
+    </div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div id="appView">
+  <div class="topbar">
+    <span class="logo">模拟商家后台</span>
+    <span class="muted" style="color:#c7d2fe" id="envHint">localhost:8090</span>
+    <span class="who">
+      <span id="whoName"></span>
+      <button class="sm" onclick="logout()">退出</button>
+    </span>
+  </div>
+  <div class="wrap">
+    <nav class="sidenav" id="nav"></nav>
+    <div class="main" id="main"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="card" id="modalBody"></div></div>
+
+<script>
+"use strict";
+const API = "/mock-api/v1";
+const state = { token: "", me: null, tab: "dash" };
+
+/* ---------------- 基础 ---------------- */
+function $(s){ return document.querySelector(s); }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function money(n){ return "¥" + (Number(n)||0).toFixed(2); }
+function toast(msg, ok=true){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.style.background = ok ? "#16a34a" : "#dc2626";
+  t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 3200);
+}
+async function api(method, path, body){
+  const headers = {"Content-Type":"application/json"};
+  if (state.token) headers["Authorization"] = "Bearer " + state.token;
+  const res = await fetch(API + path, {
+    method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  let j = null;
+  try { j = await res.json(); } catch(e){}
+  if (res.status === 401){ logout(true); throw new Error("登录已失效，请重新登录"); }
+  if (!j) throw new Error("响应解析失败 HTTP " + res.status);
+  if (!j.success) throw Object.assign(new Error(j.message||"请求失败"),
+    {code: j.error_code, status: res.status});
+  return j.data;
+}
+const GET  = p => api("GET", p);
+const POST = (p,b) => api("POST", p, b ?? {});
+const PUT  = (p,b) => api("PUT", p, b);
+const PATCH= (p,b) => api("PATCH", p, b);
+const DEL  = p => api("DELETE", p);
+
+async function guard(fn){
+  try { await fn(); }
+  catch(e){ toast(e.message || String(e), false); console.error(e); }
+}
+
+/* 状态徽章 */
+const STATUS_COLOR = {
+  "待付款":"b-orange","已付款":"b-cyan","待发货":"b-blue","已发货":"b-purple","运输中":"b-purple",
+  "已签收":"b-green","已完成":"b-gray","已取消":"b-gray","已退款":"b-red","售后中":"b-pink","退款中":"b-pink",
+  "待审核":"b-orange","审核通过":"b-green","已驳回":"b-red","已退款":"b-red","已关闭":"b-gray",
+  "待寄回":"b-blue","已寄回":"b-cyan","商家收货":"b-purple","审核驳回":"b-red","退款中":"b-pink",
+  "待处理":"b-orange","处理中":"b-blue","已解决":"b-green","已关闭":"b-gray","在售":"b-green","下架":"b-gray",
+  "待发货":"b-blue","已揽收":"b-cyan","到达分拨中心":"b-blue","派送中":"b-purple","派送异常":"b-red",
+};
+function badge(s){ return `<span class="badge ${STATUS_COLOR[s]||"b-gray"}">${esc(s)}</span>`; }
+
+/* 弹窗 */
+function openModal(html, wide=false){
+  $("#modalBody").className = "card" + (wide ? " wide" : "");
+  $("#modalBody").innerHTML = `<button class="close" onclick="closeModal()">✕</button>` + html;
+  $("#modal").classList.add("show");
+}
+function closeModal(){ $("#modal").classList.remove("show"); }
+function confirmDo(msg, fn){
+  if (confirm(msg)) guard(fn);
+}
+function promptModal(title, fields, submitText, onSubmit){
+  const html = `<h3>${esc(title)}</h3><div class="form-grid">` +
+    fields.map(f => f.full === false ? "" :
+      `<div class="${f.full ? "full" : ""}"><label>${esc(f.label)}</label>${
+        f.type === "select"
+          ? `<select id="pf_${f.name}">${f.options.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join("")}</select>`
+          : f.type === "textarea"
+            ? `<textarea id="pf_${f.name}" rows="3">${esc(f.value||"")}</textarea>`
+            : `<input id="pf_${f.name}" value="${esc(f.value||"")}" placeholder="${esc(f.ph||"")}">`
+      }</div>`).join("") +
+    `</div><div style="margin-top:16px;text-align:right">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button onclick="submitPrompt()">${esc(submitText)}</button></div>`;
+  openModal(html);
+  window._promptSubmit = () => {
+    const body = {};
+    fields.forEach(f => {
+      const el = $("#pf_" + f.name);
+      if (!el) return;
+      let v = el.value;
+      if (f.type === "number") v = Number(v) || 0;
+      body[f.name] = v;
+    });
+    guard(async () => { await onSubmit(body); closeModal(); });
+  };
+}
+function submitPrompt(){ window._promptSubmit && window._promptSubmit(); }
+
+/* 分页 */
+function pager(total, page, pageSize, reloadFn){
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  return `<div class="pager"><span class="muted">共 ${total} 条 / ${pages} 页</span>
+    <button class="ghost sm" ${page<=1?"disabled":""} onclick="${reloadFn}(${page-1})">上一页</button>
+    <span class="muted">第 ${page} 页</span>
+    <button class="ghost sm" ${page>=pages?"disabled":""} onclick="${reloadFn}(${page+1})">下一页</button></div>`;
+}
+
+/* ---------------- 登录 ---------------- */
+function fillAcct(u){ $("#loginUser").value = u; $("#loginPass").value = "123456"; }
+async function doLogin(){
+  guard(async () => {
+    const d = await POST("/auth/token", {
+      username: $("#loginUser").value.trim(), password: $("#loginPass").value
+    });
+    state.token = d.access_token;
+    const me = await GET("/auth/me");
+    // 商家后台仅供商家员工使用，顾客账号请通过 V4 客服系统访问
+    if (me.subject_type === "customer"){
+      state.token = "";
+      throw new Error("商家后台仅供商家员工登录，顾客请使用客服系统");
+    }
+    state.me = me;
+    localStorage.setItem("mm_token", state.token);
+    enterApp();
+    toast("登录成功，欢迎 " + me.name);
+  });
+}
+function logout(expired){
+  state.token = ""; state.me = null;
+  localStorage.removeItem("mm_token");
+  $("#appView").style.display = "none";
+  $("#loginView").style.display = "flex";
+  if (expired) toast("登录已失效", false);
+}
+function enterApp(){
+  $("#loginView").style.display = "none";
+  $("#appView").style.display = "block";
+  $("#whoName").textContent = `${state.me.name}（${state.me.role}）`;
+  renderNav();
+  switchTab(state.tab || "dash");
+}
+
+/* ---------------- 导航 ---------------- */
+const NAVS = [
+  ["dash","📊 经营看板"], ["products","📦 商品"], ["inventory","🏬 库存"],
+  ["orders","🧾 订单"], ["logistics","🚚 物流"], ["aftersales","🔧 售后"],
+  ["refunds","💰 退款"], ["tickets","🎫 工单"], ["customers","👥 顾客"],
+  ["logs","📝 操作日志"], ["faults","⚡ 故障模拟"],
+];
+function renderNav(){
+  $("#nav").innerHTML = NAVS
+    .map(([k,label]) => `<a href="javascript:void(0)" id="nav_${k}"
+       class="${state.tab===k?"active":""}" onclick="switchTab('${k}')">${label}</a>`).join("");
+}
+function switchTab(tab){
+  state.tab = tab;
+  renderNav();
+  const loaders = {
+    dash: loadDash, products: loadProducts, inventory: loadInventory,
+    orders: loadOrders, logistics: loadLogistics, aftersales: loadAfterSales,
+    refunds: loadRefunds, tickets: loadTickets, customers: loadCustomers,
+    logs: loadLogs, faults: loadFaults,
+  };
+  guard(loaders[tab] || (()=>$("#main").innerHTML = '<div class="empty">功能开发中</div>'));
+}
+function setPageTitle(title, extra=""){
+  $("#main").innerHTML = `<div class="page-title"><h2>${title}</h2>${extra}</div><div id="pageBody"></div>`;
+  return $("#pageBody");
+}
+
+/* ---------------- 看板 ---------------- */
+async function loadDash(){
+  const body = setPageTitle("📊 经营看板");
+  const [sum, sales, od, as, cs] = await Promise.all([
+    GET("/dashboard/summary"), GET("/dashboard/sales"), GET("/dashboard/orders"),
+    GET("/dashboard/after-sales"), GET("/dashboard/customer-service"),
+  ]);
+  const kpi = (k,v,cls="") => `<div class="kpi"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
+  body.innerHTML = `
+    <div class="kpis">
+      ${kpi("今日订单", sum.today_order_count)}
+      ${kpi("今日销售额", money(sum.today_sales_amount), "ok")}
+      ${kpi("待发货", sum.pending_shipment_count, sum.pending_shipment_count>0?"warn":"")}
+      ${kpi("售后/退款中订单", sum.after_sale_order_count, sum.after_sale_order_count>0?"warn":"")}
+      ${kpi("待处理工单", sum.pending_ticket_count, sum.pending_ticket_count>0?"warn":"")}
+      ${kpi("累计退款金额", money(sum.total_refund_amount), "bad")}
+      ${kpi("库存预警商品", sum.low_stock_product_count, sum.low_stock_product_count>0?"bad":"ok")}
+      ${kpi("在售商品", sum.in_stock_product_count)}
+    </div>
+    <div class="cols-2 section">
+      <div class="card"><h4>近 7 天销售趋势</h4>${
+        maxBar(sales.trend, t=>t.sales_amount, (t,w) =>
+          `<div class="bar-row"><span class="lbl">${t.date.slice(5)}</span>
+           <span class="bar" style="width:${w}%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></span>
+           <span class="num">${money(t.sales_amount)} / ${t.order_count}单</span></div>`)
+      }</div>
+      <div class="card"><h4>商品销量排行 TOP10</h4>${
+        maxBar(sales.top_products, p=>p.sales, (p,w) =>
+          `<div class="bar-row"><span class="lbl" title="${esc(p.name)}">${esc(p.sku)} ${esc(p.name)}</span>
+           <span class="bar" style="width:${w}%;background:linear-gradient(90deg,#34d399,#059669)"></span>
+           <span class="num">${p.sales}件</span></div>`)
+      }</div>
+    </div>
+    <div class="cols-2 section">
+      <div class="card"><h4>订单状态分布（共 ${od.total_orders} 单）</h4>${
+        maxBar(od.status_distribution, s=>s.count, (s,w) =>
+          `<div class="bar-row"><span class="lbl">${badge(s.status)}</span>
+           <span class="bar" style="width:${w}%"></span>
+           <span class="num">${s.count} 单</span></div>`)
+      }</div>
+      <div class="card"><h4>售后与退款</h4>
+        <div class="dl">
+          <dt>待审核售后</dt><dd>${as.pending_review_count}</dd>
+          <dt>待审核退款</dt><dd>${as.pending_refund_review_count}</dd>
+        </div>
+        <h4 style="margin-top:10px">售后类型分布</h4>${
+        maxBar(as.type_distribution, s=>s.count, (s,w) =>
+          `<div class="bar-row"><span class="lbl">${esc(s.type)}</span>
+           <span class="bar" style="width:${w}%;background:#d97706"></span>
+           <span class="num">${s.count}</span></div>`)}
+      </div>
+    </div>
+    <div class="card section"><h4>客服指标（演示）</h4>
+      <div class="kpis">
+        ${kpi("接待量", cs.reception_count)} ${kpi("转人工", cs.human_transfer_count)}
+        ${kpi("AI 解决率", cs.ai_resolution_rate + "%", "ok")}
+        ${kpi("满意度", cs.satisfaction + "%", "ok")}
+        ${kpi("工单总数", cs.ticket_count)} ${kpi("已解决工单", cs.ticket_resolved_count)}
+      </div>
+    </div>`;
+}
+function maxBar(list, val, render){
+  if (!list || !list.length) return '<div class="empty">暂无数据</div>';
+  const max = Math.max(...list.map(val), 1);
+  return list.map(item => {
+    const w = Math.max(2, Math.round(val(item) / max * 100));
+    return render(item, w);
+  }).join("");
+}
+
+/* ---------------- 商品 ---------------- */
+const prodState = { page: 1, keyword: "", status: "" };
+async function loadProducts(){
+  const body = setPageTitle("📦 商品管理",
+    `<button class="ghost sm" onclick="reloadProducts(1)">🔄 刷新</button>
+     <button class="sm" onclick="showProductCreate()">＋ 新增商品</button>`);
+  const q = new URLSearchParams({page: prodState.page, page_size: 10});
+  if (prodState.keyword) q.set("keyword", prodState.keyword);
+  if (prodState.status) q.set("status", prodState.status);
+  const d = await GET("/products?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <input id="prodKw" placeholder="搜索名称 / SKU / 分类" value="${esc(prodState.keyword)}"
+        style="width:220px" onkeydown="if(event.key==='Enter')prodSearch()">
+      <select id="prodSt" onchange="prodStFilter()">
+        <option value="">全部状态</option>
+        <option value="在售" ${prodState.status==="在售"?"selected":""}>在售</option>
+        <option value="下架" ${prodState.status==="下架"?"selected":""}>下架</option>
+      </select>
+      <button class="sm" onclick="prodSearch()">搜索</button>
+    </div>
+    <table><thead><tr>
+      <th>SKU</th><th>名称</th><th>分类</th><th>价格</th><th>库存/可售</th>
+      <th>销量</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(p => `<tr>
+      <td class="mono">${esc(p.sku)}</td><td>${esc(p.name)}</td><td>${esc(p.category)}</td>
+      <td>${money(p.price)}${p.original_price>p.price?`<div class="muted" style="text-decoration:line-through">${money(p.original_price)}</div>`:""}</td>
+      <td>${p.stock}${p.locked_stock?`（锁${p.locked_stock}）`:""} / <b style="color:${p.available_stock<=p.safety_stock?"var(--bad)":"var(--ok)"}">${p.available_stock}</b>${p.low_stock_warning?' <span class="badge b-red">低库存</span>':""}</td>
+      <td>${p.sales}</td><td>${badge(p.status)}</td>
+      <td style="white-space:nowrap">
+        <button class="ghost sm" onclick='showProductEdit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>编辑</button>
+        <button class="ghost sm" onclick="toggleProduct('${esc(p.sku)}','${p.status==="在售"?"下架":"在售"}')">${p.status==="在售"?"下架":"上架"}</button>
+        ${state.me.role==="merchant_admin"?`<button class="bad sm" onclick="delProduct('${esc(p.sku)}')">删除</button>`:""}
+      </td></tr>`).join("")}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadProducts")}`;
+}
+function prodSearch(){ prodState.keyword = $("#prodKw").value.trim(); prodState.page = 1; guard(loadProducts); }
+function prodStFilter(){ prodState.status = $("#prodSt").value; prodState.page = 1; guard(loadProducts); }
+function reloadProducts(p){ prodState.page = p || 1; guard(loadProducts); }
+
+function showProductCreate(){
+  promptModal("新增商品", [
+    {name:"sku", label:"SKU", ph:"如 SOCK-005"},
+    {name:"name", label:"名称", ph:"商品名称"},
+    {name:"category", label:"分类", ph:"如 配饰"},
+    {name:"price", label:"价格", type:"number", value:"99"},
+    {name:"stock", label:"库存", type:"number", value:"100"},
+    {name:"safety_stock", label:"安全库存", type:"number", value:"10"},
+    {name:"highlights", label:"卖点", full:true, ph:"多个用 / 分隔"},
+    {name:"description", label:"描述", type:"textarea", full:true},
+  ], "创建", async b => {
+    await POST("/products", b); toast("商品创建成功"); reloadProducts(1);
+  });
+}
+function showProductEdit(p){
+  promptModal("编辑商品 " + p.sku, [
+    {name:"name", label:"名称", value:p.name},
+    {name:"category", label:"分类", value:p.category},
+    {name:"price", label:"价格", type:"number", value:p.price},
+    {name:"stock", label:"库存", type:"number", value:p.stock},
+    {name:"safety_stock", label:"安全库存", type:"number", value:p.safety_stock},
+    {name:"highlights", label:"卖点", full:true, value:p.highlights},
+    {name:"description", label:"描述", type:"textarea", full:true, value:p.description},
+  ], "保存", async b => {
+    await PUT("/products/" + p.sku, b); toast("商品已更新"); reloadProducts();
+  });
+}
+function toggleProduct(sku, to){
+  confirmDo(`确认将商品 ${sku} ${to}？`, async () => {
+    await PATCH(`/products/${sku}/status`, {status: to}); toast(`已${to}`); reloadProducts();
+  });
+}
+function delProduct(sku){
+  confirmDo(`确认删除商品 ${sku}？（已被订单引用的商品无法删除）`, async () => {
+    await DEL("/products/" + sku); toast("商品已删除"); reloadProducts();
+  });
+}
+
+/* ---------------- 库存 ---------------- */
+const invState = { page: 1, keyword: "", low: false };
+async function loadInventory(){
+  const body = setPageTitle("🏬 库存管理",
+    `<button class="ghost sm" onclick="reloadInv(1)">🔄 刷新</button>`);
+  const q = new URLSearchParams({page: invState.page, page_size: 12});
+  if (invState.keyword) q.set("keyword", invState.keyword);
+  if (invState.low) q.set("low_stock_only", "true");
+  const d = await GET("/inventory?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <input id="invKw" placeholder="搜索 SKU / 名称" value="${esc(invState.keyword)}"
+        style="width:200px" onkeydown="if(event.key==='Enter')invSearch()">
+      <button class="sm" onclick="invSearch()">搜索</button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px">
+        <input type="checkbox" id="invLow" ${invState.low?"checked":""} onchange="invLowToggle()"> 仅看低库存预警</label>
+    </div>
+    <table><thead><tr>
+      <th>SKU</th><th>名称</th><th>当前库存</th><th>锁定</th><th>可售</th><th>安全线</th><th>预警</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(p => `<tr>
+      <td class="mono">${esc(p.sku)}</td><td>${esc(p.name)}</td>
+      <td><b>${p.stock}</b></td><td>${p.locked_stock}</td>
+      <td style="color:${p.available_stock<=p.safety_stock?"var(--bad)":"var(--ok)"}"><b>${p.available_stock}</b></td>
+      <td>${p.safety_stock}</td>
+      <td>${p.low_stock_warning?'<span class="badge b-red">低于安全线</span>':'<span class="badge b-green">正常</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="ghost sm" onclick="showInvDetail('${esc(p.sku)}')">流水</button>
+        <button class="sm" onclick="showInvAdjust('${esc(p.sku)}')">调整</button>
+      </td></tr>`).join("")}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadInv")}`;
+}
+function invSearch(){ invState.keyword = $("#invKw").value.trim(); invState.page = 1; guard(loadInventory); }
+function invLowToggle(){ invState.low = $("#invLow").checked; invState.page = 1; guard(loadInventory); }
+function reloadInv(p){ invState.page = p || 1; guard(loadInventory); }
+
+function showInvAdjust(sku){
+  promptModal("库存调整：" + sku, [
+    {name:"change_qty", label:"调整数量（正数入库 / 负数出库）", value:"50"},
+    {name:"reason", label:"原因", full:true, ph:"如 补货入库"},
+  ], "提交调整", async b => {
+    b.change_qty = Number(b.change_qty) || 0;
+    await POST("/inventory/adjust", {...b, sku}); toast("库存调整成功"); reloadInv();
+  });
+}
+async function showInvDetail(sku){
+  const d = await GET("/inventory/" + sku);
+  const ACTION = {reserve:"锁定",release:"释放",sale:"出库",restock:"退货入库",adjust:"调整"};
+  openModal(`<h3>库存流水 · ${esc(d.sku)} ${esc(d.name)}</h3>
+    <div class="dl"><dt>当前库存</dt><dd>${d.stock}（锁定 ${d.locked_stock}，可售 ${d.available_stock}）</dd></div>
+    <table style="margin-top:10px"><thead><tr><th>时间</th><th>操作</th><th>变动</th><th>之前→之后</th><th>原因</th><th>操作人</th></tr></thead><tbody>
+    ${(d.recent_logs||[]).map(l => `<tr>
+      <td class="muted mono">${esc(l.created_at)}</td><td>${ACTION[l.action]||l.action}</td>
+      <td style="color:${l.change_qty>0?"var(--ok)":"var(--bad)"}">${l.change_qty>0?"+":""}${l.change_qty}</td>
+      <td>${l.before_stock} → ${l.after_stock}</td><td>${esc(l.reason)}</td><td>${esc(l.operator)}</td></tr>`).join("")
+      || '<tr><td colspan="6" class="empty">暂无流水</td></tr>'}
+    </tbody></table>`);
+}
+
+/* ---------------- 订单 ---------------- */
+const ORDER_STATUS = ["","待付款","已付款","待发货","已发货","运输中","已签收","已完成","已取消","已退款","售后中","退款中"];
+const ordState = { page: 1, status: "", keyword: "", customer: "" };
+async function loadOrders(){
+  const body = setPageTitle("🧾 订单管理",
+    `<button class="ghost sm" onclick="reloadOrders(1)">🔄 刷新</button>
+     <button class="sm" onclick="showOrderCreate()">＋ 代客下单</button>`);
+  const q = new URLSearchParams({page: ordState.page, page_size: 10});
+  if (ordState.status) q.set("status", ordState.status);
+  if (ordState.keyword) q.set("keyword", ordState.keyword);
+  if (ordState.customer) q.set("customer_id", ordState.customer);
+  const d = await GET("/orders?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <input id="ordKw" placeholder="订单号 / 收货人" value="${esc(ordState.keyword)}"
+        style="width:170px" onkeydown="if(event.key==='Enter')ordSearch()">
+      <input id="ordCust" placeholder="顾客ID" value="${esc(ordState.customer)}"
+        style="width:100px" onkeydown="if(event.key==='Enter')ordSearch()">
+      <select id="ordSt" onchange="ordStFilter()">
+        ${ORDER_STATUS.map(s=>`<option value="${s}" ${ordState.status===s?"selected":""}>${s||"全部状态"}</option>`).join("")}
+      </select>
+      <button class="sm" onclick="ordSearch()">搜索</button>
+    </div>
+    <table><thead><tr>
+      <th>订单号</th><th>顾客</th><th>商品</th><th>实付</th><th>收货人</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(o => `<tr>
+      <td class="mono"><a href="javascript:void(0)" onclick="showOrderDetail('${o.order_id}')">${o.order_id}</a></td>
+      <td class="mono">${esc(o.customer_id)}</td>
+      <td class="items-table">${o.items.map(i=>`${esc(i.name)}×${i.qty}`).join("<br>")}</td>
+      <td><b>${money(o.total)}</b></td>
+      <td>${esc(o.receiver_name)}<div class="muted mono">${esc(o.receiver_phone)}</div></td>
+      <td>${badge(o.status)}</td>
+      <td class="muted mono">${esc(o.created_at)}</td>
+      <td style="white-space:nowrap">
+        <button class="ghost sm" onclick="showOrderDetail('${o.order_id}')">详情</button>
+        ${orderActions(o)}
+      </td></tr>`).join("") || '<tr><td colspan="8" class="empty">暂无订单</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadOrders")}`;
+}
+function orderActions(o){
+  const s = o.status, btns = [];
+  if (s === "待付款") btns.push(`<button class="ok sm" onclick="orderOp('${o.order_id}','pay')">支付</button>`,
+    `<button class="warn sm" onclick="orderCancel('${o.order_id}')">取消</button>`);
+  if (s === "已付款" || s === "待发货") btns.push(`<button class="sm" onclick="orderShip('${o.order_id}')">发货</button>`,
+    `<button class="warn sm" onclick="orderCancel('${o.order_id}')">取消</button>`);
+  if (s === "已发货" || s === "运输中") btns.push(`<button class="ok sm" onclick="orderOp('${o.order_id}','confirm')">确认收货</button>`);
+  if (s === "已签收") btns.push(`<button class="sm" onclick="orderOp('${o.order_id}','complete')">交易完成</button>`);
+  return btns.join("");
+}
+function ordSearch(){ ordState.keyword = $("#ordKw").value.trim(); ordState.customer = $("#ordCust").value.trim(); ordState.page = 1; guard(loadOrders); }
+function ordStFilter(){ ordState.status = $("#ordSt").value; ordState.page = 1; guard(loadOrders); }
+function reloadOrders(p){ ordState.page = p || 1; guard(loadOrders); }
+async function orderOp(id, op){
+  guard(async () => {
+    const d = await POST(`/orders/${id}/${op}`);
+    toast(d.message || "操作成功");
+    if (op === "cancel" && !d.data) {} // noop
+    reloadOrders();
+  });
+}
+function orderCancel(id){
+  promptModal("取消订单 " + id, [
+    {name:"reason", label:"取消原因", full:true, value:"顾客主动取消"},
+  ], "确认取消", async b => { await POST(`/orders/${id}/cancel`, b); toast("订单已取消"); reloadOrders(); });
+}
+function orderShip(id){
+  promptModal("发货 " + id, [
+    {name:"carrier", label:"快递公司", type:"select", options:["顺丰","中通","圆通","韵达","申通"]},
+  ], "确认发货", async b => { await POST(`/orders/${id}/ship`, b); toast("订单已发货"); reloadOrders(); });
+}
+function showOrderCreate(){
+  promptModal("代客创建订单", [
+    {name:"customer_id", label:"顾客ID", ph:"C001"},
+    {name:"sku", label:"SKU", ph:"SOCK-001"},
+    {name:"qty", label:"数量", type:"number", value:"1"},
+    {name:"receiver_name", label:"收货人"},
+    {name:"receiver_phone", label:"手机号", ph:"13812345678"},
+    {name:"address", label:"地址", full:true},
+  ], "创建订单", async b => {
+    const d = await POST("/orders", {
+      customer_id: b.customer_id.trim(),
+      items: [{sku: b.sku.trim(), qty: Number(b.qty)||1}],
+      receiver_name: b.receiver_name, receiver_phone: b.receiver_phone, address: b.address,
+    });
+    toast(`订单 ${d.order_id} 创建成功（${d.status}）`); reloadOrders(1);
+  });
+}
+async function showOrderDetail(id){
+  const d = await GET("/orders/" + id);
+  const opBtns = orderActions(d);
+  openModal(`<h3>订单 ${esc(d.order_id)} ${badge(d.status)}</h3>
+    <div class="dl">
+      <dt>顾客</dt><dd class="mono">${esc(d.customer_id)}</dd>
+      <dt>收货人</dt><dd>${esc(d.receiver_name)} · <span class="mono">${esc(d.receiver_phone)}</span></dd>
+      <dt>地址</dt><dd>${esc(d.address)}</dd>
+      <dt>金额</dt><dd>商品 ${money(d.goods_amount)} − 优惠 ${money(d.discount)} + 运费 ${money(d.freight)} = <b>${money(d.total)}</b></dd>
+      ${d.cancel_reason?`<dt>取消原因</dt><dd>${esc(d.cancel_reason)}</dd>`:""}
+      ${d.paid_at?`<dt>支付时间</dt><dd>${esc(d.paid_at)}</dd>`:""}
+      ${d.shipped_at?`<dt>发货时间</dt><dd>${esc(d.shipped_at)}</dd>`:""}
+      ${d.signed_at?`<dt>签收时间</dt><dd>${esc(d.signed_at)}</dd>`:""}
+    </div>
+    <table style="margin:10px 0"><thead><tr><th>商品</th><th>单价</th><th>数量</th><th>小计</th></tr></thead><tbody>
+      ${d.items.map(i=>`<tr><td>${esc(i.name)}<div class="muted mono">${esc(i.sku)}</div></td>
+        <td>${money(i.price)}</td><td>×${i.qty}</td><td>${money(i.amount)}</td></tr>`).join("")}
+    </tbody></table>
+    ${d.logistics ? `<div class="section"><h4>物流信息 · ${esc(d.logistics.carrier)} <span class="mono">${esc(d.logistics.tracking_no)}</span> ${badge(d.logistics.status)}</h4>
+      <div class="timeline">${(d.logistics.traces||[]).map(t=>
+        `<div class="tl"><b>${esc(t.status)}</b> · ${esc(t.location)}<div class="t">${esc(t.time)}</div></div>`).join("")}</div></div>` : ""}
+    <div class="section"><h4>操作日志</h4>
+      <div class="timeline">${(d.logs||[]).map(l=>
+        `<div class="tl"><b>${esc(l.action)}</b>${l.from_status||l.to_status?`（${esc(l.from_status)}→${esc(l.to_status)}）`:""}
+         <div class="muted">${esc(l.remark||"")} · ${esc(l.operator)}</div>
+         <div class="t">${esc(l.created_at)}</div></div>`).join("")}</div></div>
+    <div style="margin-top:14px;text-align:right">${opBtns}</div>`, true);
+}
+
+/* ---------------- 物流 ---------------- */
+const logiState = { orderId: "" };
+async function loadLogistics(){
+  const body = setPageTitle("🚚 物流管理");
+  body.innerHTML = `
+    <div class="card">
+      <div class="toolbar">
+        <input id="logiOrderId" placeholder="输入订单号查询物流，如 SO20260830001"
+          value="${esc(logiState.orderId)}" style="width:280px"
+          onkeydown="if(event.key==='Enter')logiQuery()">
+        <button class="sm" onclick="logiQuery()">查询</button>
+        <span class="muted">节点：待发货 → 已揽收 → 到达分拨中心 → 运输中 → 派送中 → 已签收</span>
+      </div>
+      <div id="logiResult"><div class="empty">输入订单号查询物流轨迹（已发货的订单才有物流信息）</div></div>
+    </div>`;
+  if (logiState.orderId) logiQuery();
+}
+async function logiQuery(){
+  const id = $("#logiOrderId").value.trim();
+  if (!id) return;
+  logiState.orderId = id;
+  guard(async () => {
+    const d = await GET("/logistics/" + id);
+    $("#logiResult").innerHTML = `
+      <div class="dl">
+        <dt>物流单号</dt><dd class="mono">${esc(d.tracking_no)}</dd>
+        <dt>快递公司</dt><dd>${esc(d.carrier)}</dd>
+        <dt>当前状态</dt><dd>${badge(d.status)}（${esc(d.current_location)}）</dd>
+      </div>
+      <div class="toolbar" style="margin:10px 0">
+        ${d.status!=="已签收"?`
+          <button class="sm" onclick="logiAdvance('${id}',false)">➡ 推进到下一节点</button>
+          <button class="warn sm" onclick="logiAdvance('${id}',true)">⚠ 模拟派送异常</button>
+          <button class="ok sm" onclick="logiSign('${id}')">✅ 签收</button>`:`<span class="badge b-green">包裹已签收</span>`}
+      </div>
+      <div class="timeline">${(d.traces||[]).map(t=>
+        `<div class="tl"><b>${esc(t.status)}</b> · ${esc(t.location)}<div class="t">${esc(t.time)}</div></div>`).join("")}</div>`;
+  });
+}
+async function logiAdvance(id, exc){
+  guard(async () => {
+    const d = await POST(`/logistics/${id}/advance`, {force_exception: exc});
+    toast(`物流已推进到「${d.status}」`); logiQuery();
+  });
+}
+async function logiSign(id){
+  guard(async () => { await POST(`/logistics/${id}/sign`); toast("已签收"); logiQuery(); });
+}
+
+/* ---------------- 售后 ---------------- */
+const AS_TYPES = ["","仅退款","退货退款","换货","维修","投诉"];
+const AS_STATUS = ["","待审核","待寄回","已寄回","商家收货","审核通过","退款中","已完成","审核驳回","已关闭"];
+const asState = { page: 1, status: "", type: "" };
+async function loadAfterSales(){
+  const body = setPageTitle("🔧 售后管理",
+    `<button class="ghost sm" onclick="reloadAS(1)">🔄 刷新</button>`);
+  const q = new URLSearchParams({page: asState.page, page_size: 10});
+  if (asState.status) q.set("status", asState.status);
+  if (asState.type) q.set("type", asState.type);
+  const d = await GET("/after-sales?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <select onchange="asTypeFilter(this.value)">
+        ${AS_TYPES.map(t=>`<option value="${t}" ${asState.type===t?"selected":""}>${t||"全部类型"}</option>`).join("")}
+      </select>
+      <select onchange="asStFilter(this.value)">
+        ${AS_STATUS.map(s=>`<option value="${s}" ${asState.status===s?"selected":""}>${s||"全部状态"}</option>`).join("")}
+      </select>
+      <span class="muted">售后时效：签收后 7 天内可申请（质量问题除外）</span>
+    </div>
+    <table><thead><tr>
+      <th>售后单号</th><th>订单</th><th>顾客</th><th>类型</th><th>原因</th><th>金额</th><th>状态</th><th>申请时间</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(a => `<tr>
+      <td class="mono"><a href="javascript:void(0)" onclick="showASDetail('${a.after_sale_id}')">${a.after_sale_id}</a></td>
+      <td class="mono">${esc(a.order_id)}</td><td class="mono">${esc(a.customer_id)}</td>
+      <td>${badge(a.type==="投诉"?"投诉":a.type)}</td><td>${esc(a.reason)}</td>
+      <td>${money(a.amount)}</td><td>${badge(a.status)}</td>
+      <td class="muted mono">${esc(a.created_at)}</td>
+      <td style="white-space:nowrap">${asActions(a)}</td></tr>`).join("") || '<tr><td colspan="9" class="empty">暂无售后单</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadAS")}`;
+}
+function asActions(a){
+  const btns = [];
+  if (a.status === "待审核"){
+    btns.push(`<button class="ok sm" onclick="asReview('${a.after_sale_id}','approve')">通过</button>`,
+      `<button class="bad sm" onclick="asReview('${a.after_sale_id}','reject')">驳回</button>`);
+  }
+  if (["待寄回","已寄回"].includes(a.status))
+    btns.push(`<button class="sm" onclick="asOp('${a.after_sale_id}','receive')">商家收货</button>`);
+  if (["商家收货","审核通过","退款中"].includes(a.status))
+    btns.push(`<button class="sm" onclick="asOp('${a.after_sale_id}','complete')">完成结案</button>`);
+  btns.push(`<button class="ghost sm" onclick="showASDetail('${a.after_sale_id}')">详情</button>`);
+  return btns.join("");
+}
+function asTypeFilter(v){ asState.type = v; asState.page = 1; guard(loadAfterSales); }
+function asStFilter(v){ asState.status = v; asState.page = 1; guard(loadAfterSales); }
+function reloadAS(p){ asState.page = p || 1; guard(loadAfterSales); }
+function asReview(id, act){
+  promptModal((act==="approve"?"审核通过 ":"审核驳回 ") + id, [
+    {name:"remark", label:"审核备注", full:true, value: act==="approve"?"审核通过":"不符合售后条件"},
+  ], "提交", async b => { await POST(`/after-sales/${id}/${act}`, b); toast("审核完成"); reloadAS(); });
+}
+async function asOp(id, op){
+  guard(async () => {
+    const d = await POST(`/after-sales/${id}/${op}`);
+    toast(d.message || "操作成功"); reloadAS();
+  });
+}
+async function showASDetail(id){
+  const d = await GET("/after-sales/" + id);
+  openModal(`<h3>售后单 ${esc(d.after_sale_id)} ${badge(d.status)}</h3>
+    <div class="dl">
+      <dt>类型</dt><dd>${esc(d.type)}</dd>
+      <dt>订单</dt><dd class="mono">${esc(d.order_id)}（${badge(d.order_status)}，实付 ${money(d.order_total)}）</dd>
+      <dt>顾客</dt><dd class="mono">${esc(d.customer_id)}</dd>
+      <dt>原因</dt><dd>${esc(d.reason)}</dd>
+      <dt>描述</dt><dd>${esc(d.description)}</dd>
+      <dt>涉及金额</dt><dd>${money(d.amount)}</dd>
+      ${d.refund?`<dt>关联退款</dt><dd class="mono">${esc(d.refund.refund_id)} ${badge(d.refund.status)}
+        <div class="muted">${esc(d.refund.rule_hit||"")} ${esc(d.refund.risk_result||"")}</div></dd>`:""}
+    </div>
+    <div class="section"><h4>处理日志</h4>
+      <div class="timeline">${(d.logs||[]).map(l=>
+        `<div class="tl"><b>${esc(l.action)}</b>${l.from_status||l.to_status?`（${esc(l.from_status)}→${esc(l.to_status)}）`:""}
+         <div class="muted">${esc(l.remark||"")} · ${esc(l.operator)}</div>
+         <div class="t">${esc(l.created_at)}</div></div>`).join("")}</div></div>
+    <div style="margin-top:14px;text-align:right">${asActions(d)}</div>`, true);
+}
+
+/* ---------------- 退款 ---------------- */
+const RF_STATUS = ["","待审核","审核通过","已驳回","已退款","已关闭"];
+const rfState = { page: 1, status: "" };
+async function loadRefunds(){
+  const body = setPageTitle("💰 退款管理",
+    `<button class="ghost sm" onclick="reloadRF(1)">🔄 刷新</button>`);
+  const q = new URLSearchParams({page: rfState.page, page_size: 10});
+  if (rfState.status) q.set("status", rfState.status);
+  const d = await GET("/refunds?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <select onchange="rfStFilter(this.value)">
+        ${RF_STATUS.map(s=>`<option value="${s}" ${rfState.status===s?"selected":""}>${s||"全部状态"}</option>`).join("")}
+      </select>
+      <span class="muted">风控规则 R0-R8：自动通过 / 自动驳回 / 转人工</span>
+    </div>
+    <table><thead><tr>
+      <th>退款单号</th><th>订单</th><th>顾客</th><th>金额</th><th>原因</th><th>风控</th><th>审核</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(r => `<tr>
+      <td class="mono"><a href="javascript:void(0)" onclick="showRFDetail('${r.refund_id}')">${r.refund_id}</a></td>
+      <td class="mono">${esc(r.order_id)}</td><td class="mono">${esc(r.customer_id)}</td>
+      <td><b>${money(r.amount)}</b></td><td>${esc(r.reason)}</td>
+      <td><span class="badge ${r.rule_hit&&r.rule_hit.startsWith("R")?"b-purple":"b-gray"}">${esc(r.rule_hit||"-")}</span></td>
+      <td class="muted">${r.review_type==="auto"?"自动":r.review_type==="manual"?"人工":"-"}${r.review_result?`·${esc(r.review_result)}`:""}</td>
+      <td>${badge(r.status)}</td>
+      <td style="white-space:nowrap">${rfActions(r)}</td></tr>`).join("") || '<tr><td colspan="9" class="empty">暂无退款单</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadRF")}`;
+}
+function rfActions(r){
+  const btns = [];
+  if (r.status === "待审核")
+    btns.push(`<button class="ok sm" onclick="rfReview('${r.refund_id}','approve')">通过</button>`,
+      `<button class="bad sm" onclick="rfReview('${r.refund_id}','reject')">驳回</button>`);
+  if (r.status === "审核通过")
+    btns.push(`<button class="ok sm" onclick="rfSuccess('${r.refund_id}')">确认打款</button>`);
+  btns.push(`<button class="ghost sm" onclick="showRFDetail('${r.refund_id}')">详情</button>`);
+  return btns.join("");
+}
+function rfStFilter(v){ rfState.status = v; rfState.page = 1; guard(loadRefunds); }
+function reloadRF(p){ rfState.page = p || 1; guard(loadRefunds); }
+function rfReview(id, act){
+  promptModal((act==="approve"?"退款审核通过 ":"退款驳回 ") + id, [
+    {name:"remark", label:"备注", full:true, value: act==="approve"?"人工审核通过":"人工审核驳回"},
+  ], "提交", async b => { await POST(`/refunds/${id}/${act}`, b); toast("审核完成"); reloadRF(); });
+}
+async function rfSuccess(id){
+  confirmDo("确认已打款？退款将原路退回顾客账户", async () => {
+    await POST(`/refunds/${id}/success`); toast("退款已原路退回"); reloadRF();
+  });
+}
+async function showRFDetail(id){
+  const d = await GET("/refunds/" + id);
+  openModal(`<h3>退款单 ${esc(d.refund_id)} ${badge(d.status)}</h3>
+    <div class="dl">
+      <dt>订单</dt><dd class="mono">${esc(d.order_id)}</dd>
+      <dt>顾客</dt><dd class="mono">${esc(d.customer_id)}</dd>
+      ${d.after_sale_id?`<dt>关联售后</dt><dd class="mono">${esc(d.after_sale_id)}</dd>`:""}
+      <dt>金额</dt><dd><b>${money(d.amount)}</b></dd>
+      <dt>原因</dt><dd>${esc(d.reason)}</dd>
+      <dt>风控结果</dt><dd><span class="badge b-purple">${esc(d.rule_hit||"-")}</span> ${esc(d.risk_result||"")}</dd>
+      <dt>审核方式</dt><dd>${d.review_type==="auto"?"自动":d.review_type==="manual"?"人工":"-"} · ${esc(d.review_result||"")}</dd>
+      ${d.refunded_at?`<dt>打款时间</dt><dd>${esc(d.refunded_at)}</dd>`:""}
+    </div>
+    <div class="section"><h4>操作日志</h4>
+      <div class="timeline">${(d.logs||[]).map(l=>
+        `<div class="tl"><b>${esc(l.action)}</b>${l.from_status||l.to_status?`（${esc(l.from_status)}→${esc(l.to_status)}）`:""}
+         <div class="muted">${esc(l.remark||"")} · ${esc(l.operator)}</div>
+         <div class="t">${esc(l.created_at)}</div></div>`).join("")}</div></div>
+    <div style="margin-top:14px;text-align:right">${rfActions(d)}</div>`, true);
+}
+
+/* ---------------- 工单 ---------------- */
+const TK_TYPES = ["","咨询","售后","投诉","建议","其他"];
+const TK_STATUS = ["","待处理","处理中","已解决","已关闭"];
+const tkState = { page: 1, status: "", type: "" };
+async function loadTickets(){
+  const body = setPageTitle("🎫 工单管理",
+    `<button class="ghost sm" onclick="reloadTK(1)">🔄 刷新</button>`);
+  const q = new URLSearchParams({page: tkState.page, page_size: 10});
+  if (tkState.status) q.set("status", tkState.status);
+  if (tkState.type) q.set("type", tkState.type);
+  const d = await GET("/tickets?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <select onchange="tkTypeFilter(this.value)">
+        ${TK_TYPES.map(t=>`<option value="${t}" ${tkState.type===t?"selected":""}>${t||"全部类型"}</option>`).join("")}
+      </select>
+      <select onchange="tkStFilter(this.value)">
+        ${TK_STATUS.map(s=>`<option value="${s}" ${tkState.status===s?"selected":""}>${s||"全部状态"}</option>`).join("")}
+      </select>
+      <span class="muted">处理时限：售后 24h / 投诉 12h</span>
+    </div>
+    <table><thead><tr>
+      <th>工单号</th><th>顾客</th><th>类型</th><th>优先级</th><th>摘要</th><th>负责客服</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(t => `<tr>
+      <td class="mono"><a href="javascript:void(0)" onclick="showTKDetail('${t.ticket_id}')">${t.ticket_id}</a></td>
+      <td>${esc(t.customer_name||t.customer_id)}<div class="muted mono">${esc(t.customer_id)}</div></td>
+      <td>${badge(t.type==="投诉"?"投诉":t.type)}</td>
+      <td>${t.priority===3?'<span class="badge b-red">加急</span>':t.priority===2?'<span class="badge b-blue">普通</span>':'<span class="badge b-gray">低</span>'}</td>
+      <td>${esc(t.summary)}${t.order_id?`<div class="muted mono">${esc(t.order_id)}</div>`:""}</td>
+      <td>${esc(t.assigned_to||"-")}</td><td>${badge(t.status)}</td>
+      <td class="muted mono">${esc(t.created_at)}</td>
+      <td style="white-space:nowrap">${tkActions(t)}</td></tr>`).join("") || '<tr><td colspan="9" class="empty">暂无工单</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadTK")}`;
+}
+function tkActions(t){
+  const btns = [];
+  if (t.status !== "已关闭")
+    btns.push(`<button class="ghost sm" onclick="tkAssign('${t.ticket_id}')">分配</button>`,
+      `<button class="ghost sm" onclick="tkReply('${t.ticket_id}')">回复</button>`,
+      `<button class="bad sm" onclick="tkClose('${t.ticket_id}')">关闭</button>`);
+  return btns.join("");
+}
+function tkTypeFilter(v){ tkState.type = v; tkState.page = 1; guard(loadTickets); }
+function tkStFilter(v){ tkState.status = v; tkState.page = 1; guard(loadTickets); }
+function reloadTK(p){ tkState.page = p || 1; guard(loadTickets); }
+function tkAssign(id){
+  promptModal("分配工单 " + id, [
+    {name:"assignee", label:"分配给（客服姓名/账号）", value: state.me.name},
+  ], "分配", async b => { await POST(`/tickets/${id}/assign`, b); toast("工单已分配"); reloadTK(); });
+}
+function tkReply(id){
+  promptModal("回复工单 " + id, [
+    {name:"content", label:"回复内容", type:"textarea", full:true},
+  ], "回复", async b => { await POST(`/tickets/${id}/reply`, b); toast("回复成功"); reloadTK(); });
+}
+function tkClose(id){
+  promptModal("关闭工单 " + id, [
+    {name:"resolution", label:"处理结果说明", full:true, value:"问题已处理，工单关闭"},
+  ], "关闭工单", async b => { await POST(`/tickets/${id}/close`, b); toast("工单已关闭"); reloadTK(); });
+}
+async function showTKDetail(id){
+  const d = await GET("/tickets/" + id);
+  openModal(`<h3>工单 ${esc(d.ticket_id)} ${badge(d.status)}</h3>
+    <div class="dl">
+      <dt>类型</dt><dd>${esc(d.type)} · ${esc(d.priority_label)}</dd>
+      <dt>顾客</dt><dd>${esc(d.customer_name||"")}（<span class="mono">${esc(d.customer_id)}</span>）</dd>
+      ${d.order_id?`<dt>关联订单</dt><dd class="mono">${esc(d.order_id)}</dd>`:""}
+      <dt>负责客服</dt><dd>${esc(d.assigned_to||"未分配")}</dd>
+      <dt>描述</dt><dd>${esc(d.description)}</dd>
+    </div>
+    <div class="section"><h4>处理记录</h4>
+      <div class="timeline">${(d.records||[]).map(r=>
+        `<div class="tl">${esc(r.note)}<div class="t">${esc(r.time)}</div></div>`).join("")}</div></div>
+    <div style="margin-top:14px;text-align:right">${tkActions(d)}</div>`);
+}
+
+/* ---------------- 顾客 ---------------- */
+const custState = { page: 1, keyword: "" };
+async function loadCustomers(){
+  const body = setPageTitle("👥 顾客管理（数据脱敏展示）",
+    `<button class="ghost sm" onclick="reloadCust(1)">🔄 刷新</button>`);
+  const q = new URLSearchParams({page: custState.page, page_size: 10});
+  if (custState.keyword) q.set("keyword", custState.keyword);
+  const d = await GET("/customers?" + q);
+  body.innerHTML = `
+    <div class="toolbar">
+      <input id="custKw" placeholder="搜索姓名 / 账号 / 顾客ID" value="${esc(custState.keyword)}"
+        style="width:220px" onkeydown="if(event.key==='Enter')custSearch()">
+      <button class="sm" onclick="custSearch()">搜索</button>
+    </div>
+    <table><thead><tr>
+      <th>顾客ID</th><th>姓名</th><th>账号</th><th>手机号</th><th>地址</th><th>等级</th><th>积分</th><th>订单/退款</th><th>操作</th></tr></thead><tbody>
+    ${d.list.map(c => `<tr>
+      <td class="mono">${esc(c.customer_id)}</td><td>${esc(c.name)}</td><td>${esc(c.username)}</td>
+      <td class="mono">${esc(c.phone)}</td><td>${esc(c.address)}</td>
+      <td><span class="badge ${c.level==="VIP"?"b-purple":"b-gray"}">${esc(c.level)}</span></td>
+      <td>${c.points}</td><td>${c.order_count} / ${c.refund_count}</td>
+      <td><button class="ghost sm" onclick="showCustDetail('${c.customer_id}')">详情</button></td></tr>`).join("")
+      || '<tr><td colspan="9" class="empty">暂无顾客</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadCust")}`;
+}
+function custSearch(){ custState.keyword = $("#custKw").value.trim(); custState.page = 1; guard(loadCustomers); }
+function reloadCust(p){ custState.page = p || 1; guard(loadCustomers); }
+async function showCustDetail(id){
+  const [c, orders, afters, tickets] = await Promise.all([
+    GET("/customers/" + id),
+    GET(`/customers/${id}/orders?page_size=20`),
+    GET(`/customers/${id}/after-sales?page_size=20`),
+    GET(`/customers/${id}/tickets?page_size=20`),
+  ]);
+  const sub = (title, list, cols) => `<div class="section"><h4>${title}（${list.length}）</h4>
+    <table><thead><tr>${cols.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>
+    ${list.length ? list.map(r => `<tr>${r}</tr>`).join("") : `<tr><td colspan="${cols.length}" class="empty">无</td></tr>`}
+    </tbody></table></div>`;
+  openModal(`<h3>顾客 ${esc(c.name)}（${esc(c.customer_id)}）</h3>
+    <div class="dl">
+      <dt>账号</dt><dd>${esc(c.username)}</dd>
+      <dt>手机号</dt><dd class="mono">${esc(c.phone)}</dd>
+      <dt>地址</dt><dd>${esc(c.address)}</dd>
+      <dt>等级 / 积分</dt><dd>${esc(c.level)} · ${c.points} 分</dd>
+      <dt>注册时间</dt><dd>${esc(c.created_at)}</dd>
+    </div>
+    ${sub("订单记录", orders.list.map(o=>[
+      `<td class="mono">${o.order_id}</td>`,`<td>${badge(o.status)}</td>`,
+      `<td>${money(o.total)}</td>`,`<td class="muted mono">${o.created_at}</td>`]), ["订单号","状态","金额","下单时间"])}
+    ${sub("售后记录", afters.list.map(a=>[
+      `<td class="mono">${a.after_sale_id}</td>`,`<td>${esc(a.type)}</td>`,`<td>${badge(a.status)}</td>`,
+      `<td>${esc(a.reason)}</td>`]), ["售后单号","类型","状态","原因"])}
+    ${sub("工单记录", tickets.list.map(t=>[
+      `<td class="mono">${t.ticket_id}</td>`,`<td>${esc(t.type)}</td>`,`<td>${badge(t.status)}</td>`,
+      `<td>${esc(t.summary)}</td>`]), ["工单号","类型","状态","摘要"])}
+  `, true);
+}
+
+/* ---------------- 操作日志 ---------------- */
+const logState = { page: 1 };
+async function loadLogs(){
+  const body = setPageTitle("📝 操作审计日志");
+  const d = await GET(`/admin/op-logs?page=${logState.page}&page_size=20`);
+  body.innerHTML = `
+    <table><thead><tr>
+      <th>时间</th><th>操作人</th><th>角色</th><th>动作</th><th>资源</th><th>详情</th><th>请求ID</th></tr></thead><tbody>
+    ${d.list.map(l => `<tr>
+      <td class="muted mono">${esc(l.created_at)}</td><td>${esc(l.actor)}</td>
+      <td class="muted">${esc(l.role)}</td><td><b>${esc(l.action)}</b></td>
+      <td class="mono">${esc(l.resource)}</td><td>${esc(l.detail)}</td>
+      <td class="muted mono">${esc(l.request_id)}</td></tr>`).join("")
+      || '<tr><td colspan="7" class="empty">暂无日志</td></tr>'}
+    </tbody></table>
+    ${pager(d.total, d.page, d.page_size, "reloadLogs")}`;
+}
+function reloadLogs(p){ logState.page = p || 1; guard(loadLogs); }
+
+/* ---------------- 故障模拟 ---------------- */
+const FAULT_FIELDS = [
+  ["latency_ms","模拟延迟（毫秒）","每次请求延迟指定毫秒，演练 V4 超时处理"],
+  ["error_rate","随机错误率（0~1）","按概率随机返回 500，演练重试机制"],
+  ["force_status","强制状态码（如 401/403/404/409）","所有 API 强制返回该状态码"],
+  ["force_error_code","强制错误码","配合强制状态码返回的业务错误码"],
+  ["force_next","仅影响接下来 N 次（-1 一直生效）","限制强制状态码的作用次数"],
+  ["service_unavailable","服务不可用开关","返回 503，演练服务降级"],
+  ["inventory_shortage","库存不足开关","下单/发货/调整库存时返回 409"],
+  ["duplicate_request","重复请求拦截开关","创建订单/售后/退款时返回 409"],
+  ["refund_risk_block","退款风控拦截开关","退款一律转人工审核"],
+  ["logistics_query_fail","物流查询失败开关","物流查询返回 503"],
+];
+async function loadFaults(){
+  const body = setPageTitle("⚡ 故障模拟控制台",
+    `<button class="ghost sm" onclick="guard(loadFaults)">🔄 刷新</button>
+     <button class="bad sm" onclick="resetFaults()">全部重置</button>`);
+  const cfg = await GET("/admin/faults");
+  const isAdmin = state.me.role === "merchant_admin";
+  body.innerHTML = `
+    <div class="card">
+      <div class="switch-row" style="border-bottom:2px solid var(--line)">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:700">
+          <input type="checkbox" id="ft_enabled" ${cfg.enabled?"checked":""} ${isAdmin?"":"disabled"}> 总开关（开启后以下故障才会生效）
+        </label>
+        <span class="desc">白名单接口不受影响：登录 / 故障配置 / 健康检查</span>
+      </div>
+      ${FAULT_FIELDS.map(([key,label,desc]) => {
+        const isBool = typeof cfg[key] === "boolean";
+        return `<div class="switch-row">
+          <label style="min-width:260px;display:flex;align-items:center;gap:8px">
+            ${isBool
+              ? `<input type="checkbox" id="ft_${key}" ${cfg[key]?"checked":""} ${isAdmin?"":"disabled"}> ${label}`
+              : `${label}：<input id="ft_${key}" value="${esc(cfg[key])}" style="width:110px" ${isAdmin?"":"disabled"}>`}
+          </label>
+          <span class="desc">${desc}</span>
+        </div>`;
+      }).join("")}
+      ${isAdmin ? `<div style="margin-top:14px;text-align:right">
+        <button onclick="saveFaults()">保存故障配置</button></div>`
+      : `<div class="muted" style="margin-top:10px">仅商家管理员（merchant_admin）可修改故障配置</div>`}
+    </div>`;
+}
+async function saveFaults(){
+  guard(async () => {
+    const body = { enabled: $("#ft_enabled").checked };
+    FAULT_FIELDS.forEach(([key]) => {
+      const el = $("#ft_" + key);
+      if (!el) return;
+      if (el.type === "checkbox") body[key] = el.checked;
+      else if (key === "latency_ms" || key === "force_next") body[key] = parseInt(el.value) || 0;
+      else if (key === "error_rate") body[key] = parseFloat(el.value) || 0;
+      else body[key] = el.value;
+    });
+    await PUT("/admin/faults", body);
+    toast("故障配置已保存"); loadFaults();
+  });
+}
+async function resetFaults(){
+  confirmDo("确认重置全部故障模拟（恢复正常演示）？", async () => {
+    await POST("/admin/faults/reset"); toast("故障已全部关闭"); loadFaults();
+  });
+}
+
+/* ---------------- 启动 ---------------- */
+(async function init(){
+  const saved = localStorage.getItem("mm_token");
+  if (saved){
+    state.token = saved;
+    try {
+      const me = await GET("/auth/me");
+      if (me.subject_type === "customer"){
+        // 顾客 token 一律不得进入商家后台
+        state.token = ""; localStorage.removeItem("mm_token");
+      } else {
+        state.me = me;
+        enterApp();
+        return;
+      }
+    } catch(e){ state.token = ""; localStorage.removeItem("mm_token"); }
+  }
+  $("#loginView").style.display = "flex";
+})();
+</script>
+</body>
+</html>

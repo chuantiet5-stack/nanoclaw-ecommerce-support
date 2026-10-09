@@ -1,0 +1,13 @@
+# 生产落地 P0-1.2：密钥与运行时数据绝不提交到 Git
+.env
+.env.*
+!.env.example
+config.json
+__pycache__/
+*.pyc
+workspace/sessions/
+data/*.json
+!data/*.example.json
+botpy.log*
+logs/
+backup_prod_readiness/

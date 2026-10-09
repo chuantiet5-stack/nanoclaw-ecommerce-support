@@ -1,0 +1,27 @@
+{
+  "api_key": "",
+  "base_url": "https://api.siliconflow.cn/v1",
+  "models": {
+    "main": "zai-org/GLM-5.3",
+    "subagent": "zai-org/GLM-5.3",
+    "cheap": "zai-org/GLM-5.3"
+  },
+  "workspace": ".",
+  "max_iterations": 32,
+  "identity_file": "identity.md",
+  "human_transfer_timeout": 300,
+  "feishu": {
+    "app_id": "",
+    "app_secret": ""
+  },
+  "qq": {
+    "app_id": "",
+    "app_secret": ""
+  },
+  "web": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 8080
+  },
+  "mcp_servers": {}
+}
