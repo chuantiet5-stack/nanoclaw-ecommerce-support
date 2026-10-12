@@ -1,6 +1,6 @@
-# 模拟商家服务（merchant-mock / sj）
+# 模拟商家服务
 
-独立于 V4 客服系统的**模拟商家 API + 商家后台**服务。无需任何真实商家凭证、无需外网，
+独立于 客服系统的**模拟商家 API + 商家后台**服务。无需任何真实商家凭证、无需外网，
 开箱即可演示商品、订单、物流、售后、退款风控、工单、看板全流程。
 
 ---
@@ -9,26 +9,26 @@
 
 ```
 ┌─────────────────────────┐        HTTP (localhost)        ┌─────────────────────────┐
-│  V4 客服系统 (端口 8080)  │ ───────────────────────────▶  │  模拟商家服务 (端口 8090) │
+│  客服系统 (端口 8080)  │ ───────────────────────────▶  │  模拟商家服务 (端口 8090) │
 │  python main.py          │   merchant_api_client.py      │  python main.py          │
 │  数据源: JSON/MySQL/Mock │ ◀───────────────────────────  │  SQLite 演示数据          │
 └─────────────────────────┘     统一响应 / 错误码           └─────────────────────────┘
 ```
 
-- **物理隔离**：本目录（`sj/`）与 V4（`v4/`）完全平级，各自拥有独立的 `main.py`、
+- **物理隔离**：本目录（`apps/merchant/`）与 客服（`apps/customer_service/`）完全平级，各自拥有独立的 `main.py`、
   `requirements.txt`、虚拟环境（`.venv/`）和 SQLite 数据库（`data/merchant_mock.db`），代码零耦合。
-- **通信方式**：V4 仅通过 HTTP 调用本服务，所有 API 前缀 `/mock-api/v1`，
+- **通信方式**：客服仅通过 HTTP 调用本服务，所有 API 前缀 `/mock-api/v1`，
   商家后台挂载在 `/merchant`。
 - **技术栈**：FastAPI + Uvicorn + SQLite（标准库 sqlite3，无驱动依赖）+ Pydantic。
 
 ### 目录结构
 
 ```
-sj/
+apps/merchant/
 ├── main.py                    # 独立启动入口（默认 0.0.0.0:8090）
 ├── config.py                  # 全局配置（环境变量可覆盖）
 ├── requirements.txt           # 独立依赖
-├── merchant_api_client.py     # 交付给 V4 的 HTTP 客户端（复制到 V4 即用）
+├── merchant_api_client.py     # 供客服服务使用 的 HTTP 客户端（通过 HTTP 接入）
 ├── smoke_test.py              # 冒烟测试脚本
 ├── data/merchant_mock.db      # 独立 SQLite（首次启动自动建表 + 种子数据）
 ├── tests/                     # pytest 集成测试（55 个用例）
@@ -52,14 +52,14 @@ sj/
 
 ```bash
 # 终端 1：启动模拟商家服务（本目录）
-cd 项目/sj
+cd apps/merchant
 python main.py                # 默认 0.0.0.0:8090
 #   可选参数：
 #   python main.py --port 8091   # 自定义端口
 #   python main.py --reseed      # 重置数据库并重新写入演示数据
 
-# 终端 2：启动 V4 客服（V4 目录，互不影响）
-cd 项目/v4
+# 终端 2：启动 客服（V4 目录，互不影响）
+cd apps/customer_service
 python main.py                # 默认 8080
 ```
 
@@ -83,7 +83,7 @@ python main.py                # 默认 8080
 3. 后台功能：经营看板、商品/库存/订单/物流/售后/退款/工单管理、顾客查询、
    操作日志、故障模拟控制台（管理员可新建商品、员工视角按权限展示菜单）；
 4. 商家后台**仅供商家员工登录**：顾客账号（han / lei）登录会被拒绝，
-   顾客请走 V4 客服系统（Web 页面右上角【登录】）访问自己的数据。
+   顾客请走 客服系统（Web 页面右上角【登录】）访问自己的数据。
 
 ## 四、演示账号
 

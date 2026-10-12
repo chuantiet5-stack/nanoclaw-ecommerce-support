@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """临时冒烟测试脚本（验证后写正式测试）。"""
 import os
 import sys

@@ -1,6 +1,6 @@
 # NanoClaw 精简版依赖清单（生产落地 P1-2.4）
 # 版本锁定自当前已验证可运行的环境（conda: nanopoclaw_env, Python 3.11.16）
-# 原始 conda 环境全量 dump 见 requirements.txt（400+ 包，保留不动）
+# 原始完整环境快照见 ../../requirements/legacy-customer-environment.txt
 
 # ===== 核心依赖 =====
 openai==3.6.0

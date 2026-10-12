@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 先装依赖（利用 Docker 层缓存）
-COPY requirements-lite.txt .
-RUN pip install --no-cache-dir -r requirements-lite.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 运行时阶段
 FROM python:3.11-slim

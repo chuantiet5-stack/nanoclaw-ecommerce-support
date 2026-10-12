@@ -24,8 +24,9 @@ source .venv/bin/activate
 
 ## 依赖选择
 
-- 客服应用优先使用已有的 `requirements-lite.txt`，包含核心服务、渠道、数据访问及测试依赖。
-- 客服的 `requirements.txt` 为完整开发环境依赖列表。
+- 根目录 `requirements.txt` 引用两个服务的依赖文件。
+- `apps/customer_service/requirements.txt` 为原精简依赖清单，包含服务、渠道、数据访问和测试依赖。
+- 原完整环境快照保存在 `requirements/legacy-customer-environment.txt`，仅供历史参考。
 - 模拟商家使用自身的 `requirements.txt`，与客服应用分别安装。
 - 可选 RAG 与 MySQL/Redis 服务按需要配置，避免将它们作为离线演示的前置条件。
 
@@ -33,27 +34,27 @@ source .venv/bin/activate
 
 | 路径 | 职责 |
 | --- | --- |
-| `客服页面/main.py` | Agent 选择、工具注册与网关组装 |
-| `客服页面/agent/offline_agent.py` | 离线规则路由 |
-| `客服页面/agent/tools/ecom/` | 商品、订单、物流、退款与工单工具 |
-| `客服页面/security/` | 登录、JWT 与密码校验 |
-| `模拟商家页面/mock_merchant/routes/` | 商家 API |
-| `模拟商家页面/mock_merchant/refund_policy.py` | 退款规则 |
-| `模拟商家页面/mock_merchant/seed.py` | 模拟数据生成 |
+| `apps/customer_service/main.py` | Agent 选择、工具注册与网关组装 |
+| `apps/customer_service/agent/offline_agent.py` | 离线规则路由 |
+| `apps/customer_service/agent/tools/ecom/` | 商品、订单、物流、退款与工单工具 |
+| `apps/customer_service/security/` | 登录、JWT 与密码校验 |
+| `apps/merchant/mock_merchant/routes/` | 商家 API |
+| `apps/merchant/mock_merchant/refund_policy.py` | 退款规则 |
+| `apps/merchant/mock_merchant/seed.py` | 模拟数据生成 |
 
 ## 自动化测试
 
 客服应用，在其虚拟环境中执行：
 
 ```bash
-cd 客服页面
+cd apps/customer_service
 python -m pytest tests -v
 ```
 
 模拟商家，在商家虚拟环境中安装 `pytest` 后执行：
 
 ```bash
-cd 模拟商家页面
+cd apps/merchant
 python -m pytest tests -v
 ```
 

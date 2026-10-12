@@ -2,7 +2,7 @@
 
 ## 模型与交互渠道
 
-从 `客服页面/config.example.json` 创建 `config.json`。
+从 `apps/customer_service/config.example.json` 创建 `config.json`。
 
 | 字段 | 说明 |
 | --- | --- |
@@ -18,7 +18,7 @@
 
 ## 初始化客服数据
 
-在 `客服页面/` 目录执行以下跨平台命令，创建缺失的数据文件，不覆盖已有数据：
+在 `apps/customer_service/` 目录执行以下跨平台命令，创建缺失的数据文件，不覆盖已有数据：
 
 ```bash
 python -c "from pathlib import Path; import shutil; [(shutil.copyfile(p, p.with_name(p.name.replace('.example.json', '.json')))) for p in Path('data').glob('*.example.json') if not p.with_name(p.name.replace('.example.json', '.json')).exists()]"
@@ -48,11 +48,11 @@ python -c "from pathlib import Path; import shutil; [(shutil.copyfile(p, p.with_
 - 商品工具默认使用端口 `8090` 的模拟商家 API，商家服务首次启动会生成独立演示数据。
 - 客服本地账号及订单数据与模拟商家数据库独立，启动商家服务不会自动填充客服端 JSON。
 - `DATA_BACKEND=json` 使用本地 JSON 数据；`DATA_BACKEND=mysql` 使用 MySQL 适配及迁移代码。
-- 模拟商家配置支持 `HOST`、`PORT`、`MERCHANT_MOCK_DB` 等环境变量，见 `模拟商家页面/config.py`。
+- 模拟商家配置支持 `HOST`、`PORT`、`MERCHANT_MOCK_DB` 等环境变量，见 `apps/merchant/config.py`。
 
 ## 环境变量
 
-`客服页面/.env.example` 列出 JWT、数据库、Redis、模型限流等配置项。模板供参考；启动前需将使用的变量设置到进程环境，不能假定复制为 `.env` 就会自动加载全部配置。
+`apps/customer_service/.env.example` 列出 JWT、数据库、Redis、模型限流等配置项。模板供参考；启动前需将使用的变量设置到进程环境，不能假定复制为 `.env` 就会自动加载全部配置。
 
 例如在 PowerShell 中设置 `$env:JWT_SECRET`、`$env:DB_URL`；Linux/macOS 使用 `export`。Web 与模型的主要设置以 `config.json` 及代码明确支持的环境覆盖为准。
 
